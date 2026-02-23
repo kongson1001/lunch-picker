@@ -87,6 +87,89 @@ VITE_NAVER_MAPS_CLIENT_ID=...
 VITE_FIREBASE_FUNCTIONS_URL=...
 ```
 
+## Vercel 서버 관리
+
+### 구조
+| 구분 | 역할 | 위치 |
+|------|------|------|
+| 프론트엔드 | React SPA (Vite 빌드) | `src/` → `dist/` |
+| 백엔드 API | Vercel Serverless Function | `api/searchRestaurants.js` |
+
+> `api/searchRestaurants.js`가 네이버 검색 API 프록시 역할.
+> 네이버 API 키(`NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET`)는 Vercel 환경변수에 저장.
+
+### Vercel CLI 설치
+```bash
+npm i -g vercel
+```
+
+### 배포
+```bash
+# 프리뷰 배포 (테스트용)
+vercel
+
+# 프로덕션 배포
+vercel --prod
+```
+
+### 배포 중지 / 서버 내리기
+```bash
+# 특정 배포 제거
+vercel rm <배포URL 또는 프로젝트명>
+
+# 프로젝트의 모든 배포 제거 (서버 완전 중지)
+vercel rm lunch-picker --safe
+```
+> Vercel은 서버리스(Serverless)라서 "서버를 켜고 끄는" 개념이 아님.
+> 배포(deployment)를 삭제하면 해당 URL이 비활성화됨.
+> 대시보드(https://vercel.com/dashboard)에서도 삭제 가능.
+
+### 환경변수 관리
+```bash
+# 목록 확인
+vercel env ls
+
+# 추가
+vercel env add NAVER_CLIENT_ID
+
+# 제거
+vercel env rm NAVER_CLIENT_ID
+```
+
+### 배포 상태 확인
+```bash
+# 최근 배포 목록
+vercel ls
+
+# 배포 로그 확인
+vercel logs <배포URL>
+
+# 배포 상세 정보
+vercel inspect <배포URL>
+```
+
+### 도메인 관리
+```bash
+vercel domains ls          # 연결된 도메인 확인
+vercel domains add example.com  # 커스텀 도메인 추가
+```
+
+### 배포 흐름
+```
+코드 수정 → git commit → git push
+                            ↓
+                   Vercel 자동 배포 (GitHub 연동 시)
+                            ↓
+               프리뷰 URL 생성 → 확인 후 프로덕션 승격
+```
+
+### GitHub 연동
+- GitHub 저장소: https://github.com/kongson1001/lunch-picker
+- Vercel에 연결되어 있으면 push할 때마다 자동 배포
+- Vercel 대시보드에서 확인/관리 가능
+
+---
+
 ## 프로젝트 구조
 ```
 lunch-picker/
