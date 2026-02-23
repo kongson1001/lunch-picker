@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, ref, onValue, push, set, update } from '../firebase';
-import { searchNearbyRestaurants } from '../utils/naverSearch';
+import { reverseGeocodeNaver } from '../utils/naverSearch';
 import MenuList from '../components/MenuList';
 import AddMenu from '../components/AddMenu';
 import NaverMap from '../components/NaverMap';
+import RestaurantSearch from '../components/RestaurantSearch';
 
 export default function Room() {
   const { roomId } = useParams();
@@ -15,8 +16,7 @@ export default function Room() {
   const [room, setRoom] = useState(null);
   const [myVotes, setMyVotes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const searchDone = useRef(false);
+  const [areaName, setAreaName] = useState('');
 
   useEffect(() => {
     const roomRef = ref(db, `rooms/${roomId}`);
@@ -42,35 +42,21 @@ export default function Room() {
     }
   }, [room, nickname]);
 
-  useEffect(() => {
-    if (!isHost || !room?.location || searchDone.current) return;
-    if (room.menus && Object.keys(room.menus).length > 0) return;
-    searchDone.current = true;
-    loadNearbyRestaurants();
-  }, [isHost, room?.location, room?.menus]);
+  const handleMapReady = useCallback(async () => {
+    if (!room?.location) return;
+    const name = await reverseGeocodeNaver(room.location.lat, room.location.lng);
+    setAreaName(name);
+  }, [room?.location]);
 
-  const loadNearbyRestaurants = async () => {
-    setSearchLoading(true);
-    try {
-      const restaurants = await searchNearbyRestaurants(
-        room.location.lat,
-        room.location.lng
-      );
-      const menusRef = ref(db, `rooms/${roomId}/menus`);
-      for (const restaurant of restaurants) {
-        const newMenuRef = push(menusRef);
-        await set(newMenuRef, {
-          name: restaurant.name,
-          address: restaurant.address,
-          source: 'naver',
-          addedBy: 'system',
-        });
-      }
-    } catch (err) {
-      console.error('주변 음식점 검색 실패:', err);
-    } finally {
-      setSearchLoading(false);
-    }
+  const handleAddRestaurant = async (restaurant) => {
+    const menusRef = ref(db, `rooms/${roomId}/menus`);
+    const newMenuRef = push(menusRef);
+    await set(newMenuRef, {
+      name: restaurant.name,
+      address: restaurant.address || '',
+      source: 'search',
+      addedBy: nickname,
+    });
   };
 
   const handleAddMenu = async (menuName) => {
@@ -132,6 +118,11 @@ export default function Room() {
     alert('링크가 복사되었습니다!');
   };
 
+  // 이미 추가된 메뉴 이름 Set (중복 추가 방지)
+  const addedNames = new Set(
+    Object.values(room?.menus || {}).map((m) => m.name)
+  );
+
   if (loading) return <div className="loading">방 정보 로딩 중...</div>;
 
   return (
@@ -146,10 +137,20 @@ export default function Room() {
       </header>
 
       {room.location && (
-        <NaverMap lat={room.location.lat} lng={room.location.lng} />
+        <NaverMap
+          lat={room.location.lat}
+          lng={room.location.lng}
+          onReady={handleMapReady}
+        />
       )}
 
-      {searchLoading && <p className="loading">주변 음식점 검색 중...</p>}
+      {room.status === 'voting' && (
+        <RestaurantSearch
+          areaName={areaName}
+          onAdd={handleAddRestaurant}
+          addedNames={addedNames}
+        />
+      )}
 
       <MenuList
         menus={room.menus}

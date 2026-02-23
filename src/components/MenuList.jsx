@@ -23,7 +23,7 @@ export default function MenuList({ menus, votes, myVotes, onVote, status }) {
               <h3>{menu.name}</h3>
               {menu.address && <p className="address">{menu.address}</p>}
               <span className="source-badge">
-                {menu.source === 'naver' ? '📍 주변 음식점' : '✏️ 직접 추가'}
+                {menu.source === 'search' ? '🔍 검색 추가' : menu.source === 'naver' ? '📍 주변 음식점' : '✏️ 직접 추가'}
               </span>
             </div>
             <div className="menu-vote">

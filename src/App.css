@@ -491,6 +491,139 @@
   font-size: 0.95rem;
 }
 
+/* ===== Restaurant Search ===== */
+.restaurant-search {
+  margin-bottom: 20px;
+}
+
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 12px 14px;
+  border: 2px solid #eee;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-bar input:focus {
+  border-color: #e85d26;
+}
+
+.search-bar button {
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #ff7b54, #e85d26);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.search-bar button:hover {
+  opacity: 0.9;
+}
+
+.search-bar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.search-area-info {
+  font-size: 0.8rem;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.search-results {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.search-result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: #fffaf7;
+  border: 1px solid #f0e0d6;
+  border-radius: 10px;
+}
+
+.search-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-result-info strong {
+  font-size: 0.95rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.search-category {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-left: 6px;
+}
+
+.search-address {
+  font-size: 0.8rem;
+  color: #999;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-add-btn {
+  padding: 8px 16px;
+  background: white;
+  color: #e85d26;
+  border: 2px solid #e85d26;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 10px;
+  transition: all 0.2s;
+}
+
+.search-add-btn:hover:not(.added) {
+  background: #fff5f0;
+}
+
+.search-add-btn.added {
+  background: #f5f5f5;
+  color: #aaa;
+  border-color: #ddd;
+  cursor: default;
+}
+
+.search-no-results {
+  text-align: center;
+  color: #999;
+  font-size: 0.9rem;
+  padding: 16px;
+}
+
 /* ===== Naver Map ===== */
 .map-container {
   margin-bottom: 20px;
