@@ -1,50 +1,43 @@
-function getAreaName(lat, lng) {
-  return new Promise((resolve) => {
-    if (!window.naver || !window.naver.maps || !window.naver.maps.Service) {
-      resolve('');
-      return;
-    }
-
-    window.naver.maps.Service.reverseGeocode(
-      {
-        coords: new window.naver.maps.LatLng(lat, lng),
-        orders: 'addr',
-      },
-      (status, response) => {
-        if (status !== window.naver.maps.Service.Status.OK) {
-          resolve('');
-          return;
-        }
-        const result = response.v2.address;
-        if (result) {
-          // "서울특별시 강남구 역삼동" → "강남구 역삼동"
-          const area = [result.jibunAddress || '']
-            .map((addr) => {
-              const parts = addr.split(' ');
-              // 시/도 제외하고 구/동 부분 사용
-              if (parts.length >= 3) return parts.slice(1, 3).join(' ');
-              if (parts.length >= 2) return parts.slice(1).join(' ');
-              return addr;
-            })[0];
-          resolve(area);
-        } else {
-          resolve('');
-        }
-      }
+async function getAreaName(lat, lng) {
+  try {
+    // OpenStreetMap Nominatim (무료, 키 불필요)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=ko&zoom=16`
     );
-  });
+    const data = await response.json();
+
+    if (data.address) {
+      // 구 + 동 조합 (예: "유성구 봉명동", "강남구 역삼동")
+      const parts = [];
+      if (data.address.city_district) parts.push(data.address.city_district);
+      else if (data.address.borough) parts.push(data.address.borough);
+      else if (data.address.county) parts.push(data.address.county);
+
+      if (data.address.neighbourhood) parts.push(data.address.neighbourhood);
+      else if (data.address.quarter) parts.push(data.address.quarter);
+      else if (data.address.suburb) parts.push(data.address.suburb);
+
+      if (parts.length > 0) return parts.join(' ');
+
+      // fallback: city만이라도
+      if (data.address.city) return data.address.city;
+    }
+    return '';
+  } catch (err) {
+    console.error('역지오코딩 실패:', err);
+    return '';
+  }
 }
 
 export async function searchNearbyRestaurants(lat, lng) {
-  // 현재 위치의 동네 이름을 먼저 가져옴
   const areaName = await getAreaName(lat, lng);
+  console.log('검색 지역:', areaName || '(지역 못 찾음)');
 
   const categories = ['맛집', '음식점', '식당', '점심'];
   const allResults = [];
   const seen = new Set();
 
   for (const category of categories) {
-    // "강남구 역삼동 맛집" 형태로 검색
     const searchQuery = areaName ? `${areaName} ${category}` : category;
     try {
       const response = await fetch(
