@@ -4,6 +4,7 @@ import { db, ref, onValue, push, set, update } from '../firebase';
 import { searchNearbyRestaurants } from '../utils/naverSearch';
 import MenuList from '../components/MenuList';
 import AddMenu from '../components/AddMenu';
+import NaverMap from '../components/NaverMap';
 
 export default function Room() {
   const { roomId } = useParams();
@@ -143,6 +144,10 @@ export default function Room() {
         </div>
         <p className="participant">참가자: {nickname} {isHost && '(방장)'}</p>
       </header>
+
+      {room.location && (
+        <NaverMap lat={room.location.lat} lng={room.location.lng} />
+      )}
 
       {searchLoading && <p className="loading">주변 음식점 검색 중...</p>}
 
