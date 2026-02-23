@@ -1,5 +1,3 @@
-const FUNCTIONS_BASE_URL = import.meta.env.VITE_FIREBASE_FUNCTIONS_URL || '';
-
 export async function searchNearbyRestaurants(lat, lng) {
   const categories = ['맛집', '음식점', '식당', '점심'];
   const allResults = [];
@@ -8,7 +6,7 @@ export async function searchNearbyRestaurants(lat, lng) {
   for (const category of categories) {
     try {
       const response = await fetch(
-        `${FUNCTIONS_BASE_URL}/searchRestaurants?query=${encodeURIComponent(category)}`
+        `/api/searchRestaurants?query=${encodeURIComponent(category)}`
       );
       const data = await response.json();
       if (data.items) {
