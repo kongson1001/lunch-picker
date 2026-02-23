@@ -12,20 +12,23 @@ function loadNaverMapsSDK() {
       return;
     }
     const script = document.createElement('script');
-    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}`;
+    script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}&submodules=geocoder`;
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Failed to load Naver Maps SDK'));
     document.head.appendChild(script);
   });
 }
 
-export default function NaverMap({ lat, lng, markers = [] }) {
+export default function NaverMap({ lat, lng, markers = [], onReady }) {
   const mapRef = useRef(null);
   const [sdkReady, setSdkReady] = useState(false);
 
   useEffect(() => {
     loadNaverMapsSDK()
-      .then(() => setSdkReady(true))
+      .then(() => {
+        setSdkReady(true);
+        if (onReady) onReady();
+      })
       .catch((err) => console.error(err));
   }, []);
 

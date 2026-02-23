@@ -16,6 +16,7 @@ export default function Room() {
   const [myVotes, setMyVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   const searchDone = useRef(false);
 
   useEffect(() => {
@@ -43,11 +44,11 @@ export default function Room() {
   }, [room, nickname]);
 
   useEffect(() => {
-    if (!isHost || !room?.location || searchDone.current) return;
+    if (!isHost || !room?.location || searchDone.current || !mapReady) return;
     if (room.menus && Object.keys(room.menus).length > 0) return;
     searchDone.current = true;
     loadNearbyRestaurants();
-  }, [isHost, room?.location, room?.menus]);
+  }, [isHost, room?.location, room?.menus, mapReady]);
 
   const loadNearbyRestaurants = async () => {
     setSearchLoading(true);
@@ -146,7 +147,7 @@ export default function Room() {
       </header>
 
       {room.location && (
-        <NaverMap lat={room.location.lat} lng={room.location.lng} />
+        <NaverMap lat={room.location.lat} lng={room.location.lng} onReady={() => setMapReady(true)} />
       )}
 
       {searchLoading && <p className="loading">주변 음식점 검색 중...</p>}
