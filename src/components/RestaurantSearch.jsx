@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { searchRestaurants } from '../utils/naverSearch';
 
-export default function RestaurantSearch({ areaName, onAdd, addedNames }) {
+export default function RestaurantSearch({ lat, lng, areaName, onAdd, addedNames }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -12,7 +12,7 @@ export default function RestaurantSearch({ areaName, onAdd, addedNames }) {
 
     setSearching(true);
     try {
-      const data = await searchRestaurants(trimmed, areaName);
+      const data = await searchRestaurants(trimmed, lat, lng);
       setResults(data);
     } catch (err) {
       console.error('검색 오류:', err);

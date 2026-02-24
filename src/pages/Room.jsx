@@ -146,6 +146,8 @@ export default function Room() {
 
       {room.status === 'voting' && (
         <RestaurantSearch
+          lat={room.location.lat}
+          lng={room.location.lng}
           areaName={areaName}
           onAdd={handleAddRestaurant}
           addedNames={addedNames}

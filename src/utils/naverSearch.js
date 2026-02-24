@@ -55,44 +55,34 @@ export function reverseGeocodeNaver(lat, lng) {
 }
 
 /**
- * 사용자 검색어 + 동네이름 조합하여 네이버 지역검색 API 호출
+ * 카카오 로컬 검색 API로 음식점 검색
  * @param {string} query - 사용자 입력 검색어 (예: "파스타")
- * @param {string} areaName - 동네 이름 (예: "유성구 봉명동")
+ * @param {number} lat - 위도
+ * @param {number} lng - 경도
  * @returns {Promise<Array>} 검색 결과 (최대 5개)
  */
-export async function searchRestaurants(query, areaName) {
-  const searchQuery = areaName ? `${areaName} ${query}` : query;
-  console.log('검색 쿼리:', searchQuery);
+export async function searchRestaurants(query, lat, lng) {
+  const params = new URLSearchParams({ query });
+  if (lat && lng) {
+    params.append('x', lng); // 카카오: x=경도, y=위도
+    params.append('y', lat);
+  }
 
   try {
-    const response = await fetch(
-      `/api/searchRestaurants?query=${encodeURIComponent(searchQuery)}`
-    );
+    const response = await fetch(`/api/searchRestaurants?${params}`);
     const data = await response.json();
 
-    if (!data.items) return [];
+    if (!data.documents) return [];
 
-    const seen = new Set();
-    const results = [];
-
-    for (const item of data.items) {
-      const cleanName = item.title.replace(/<[^>]*>/g, '');
-      if (seen.has(cleanName)) continue;
-      seen.add(cleanName);
-
-      results.push({
-        name: cleanName,
-        category: item.category,
-        address: item.roadAddress || item.address,
-        mapx: item.mapx,
-        mapy: item.mapy,
-        source: 'search',
-      });
-
-      if (results.length >= 5) break;
-    }
-
-    return results;
+    return data.documents.slice(0, 5).map((doc) => ({
+      name: doc.place_name,
+      category: doc.category_name,
+      address: doc.road_address_name || doc.address_name,
+      lat: doc.y,
+      lng: doc.x,
+      distance: doc.distance,
+      source: 'search',
+    }));
   } catch (err) {
     console.error('검색 실패:', err);
     return [];
