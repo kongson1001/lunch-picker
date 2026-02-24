@@ -17,6 +17,7 @@ export default function Room() {
   const [myVotes, setMyVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [areaName, setAreaName] = useState('');
+  const [searchMarkers, setSearchMarkers] = useState([]);
 
   useEffect(() => {
     const roomRef = ref(db, `rooms/${roomId}`);
@@ -47,6 +48,14 @@ export default function Room() {
     const name = await reverseGeocodeNaver(room.location.lat, room.location.lng);
     setAreaName(name);
   }, [room?.location]);
+
+  const handleSearchResults = (results) => {
+    setSearchMarkers(
+      results
+        .filter((r) => r.lat && r.lng)
+        .map((r) => ({ name: r.name, lat: Number(r.lat), lng: Number(r.lng) }))
+    );
+  };
 
   const handleAddRestaurant = async (restaurant) => {
     const menusRef = ref(db, `rooms/${roomId}/menus`);
@@ -140,6 +149,7 @@ export default function Room() {
         <NaverMap
           lat={room.location.lat}
           lng={room.location.lng}
+          markers={searchMarkers}
           onReady={handleMapReady}
         />
       )}
@@ -150,6 +160,7 @@ export default function Room() {
           lng={room.location.lng}
           areaName={areaName}
           onAdd={handleAddRestaurant}
+          onResults={handleSearchResults}
           addedNames={addedNames}
         />
       )}

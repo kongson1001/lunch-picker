@@ -47,9 +47,9 @@ export default function NaverMap({ lat, lng, markers = [], onReady }) {
     });
 
     markers.forEach((m) => {
-      if (m.mapx && m.mapy) {
+      if (m.lat && m.lng) {
         new window.naver.maps.Marker({
-          position: new window.naver.maps.LatLng(m.mapy, m.mapx),
+          position: new window.naver.maps.LatLng(m.lat, m.lng),
           map,
           title: m.name,
         });
