@@ -1,4 +1,4 @@
-export default function MenuList({ menus, votes, myVotes, onVote, status }) {
+export default function MenuList({ menus, votes, myVotes, onVote, onDelete, status }) {
   const getVoteCount = (menuId) => {
     let count = 0;
     if (votes) {
@@ -29,12 +29,20 @@ export default function MenuList({ menus, votes, myVotes, onVote, status }) {
             <div className="menu-vote">
               <span className="vote-count">{voteCount}표</span>
               {status === 'voting' && (
-                <button
-                  className={`vote-btn ${isVoted ? 'voted' : ''}`}
-                  onClick={() => onVote(menuId)}
-                >
-                  {isVoted ? '취소' : '투표'}
-                </button>
+                <>
+                  <button
+                    className={`vote-btn ${isVoted ? 'voted' : ''}`}
+                    onClick={() => onVote(menuId)}
+                  >
+                    {isVoted ? '취소' : '투표'}
+                  </button>
+                  <button
+                    className="delete-btn"
+                    onClick={() => onDelete(menuId)}
+                  >
+                    삭제
+                  </button>
+                </>
               )}
             </div>
           </div>

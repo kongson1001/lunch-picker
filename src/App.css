@@ -252,6 +252,23 @@
   background: #d14d1a;
 }
 
+.delete-btn {
+  padding: 8px 12px;
+  background: white;
+  color: #e53e3e;
+  border: 2px solid #e53e3e;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-btn:hover {
+  background: #fff5f5;
+}
+
 /* ===== Add Menu ===== */
 .add-menu {
   display: flex;

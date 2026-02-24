@@ -68,13 +68,23 @@ export async function searchRestaurants(query, lat, lng) {
     params.append('y', lat);
   }
 
+  const url = `/api/searchRestaurants?${params}`;
+  console.log('[검색] 요청 URL:', url);
+  console.log('[검색] 파라미터:', { query, lat, lng });
+
   try {
-    const response = await fetch(`/api/searchRestaurants?${params}`);
+    const response = await fetch(url);
+    console.log('[검색] 응답 상태:', response.status, response.statusText);
+
     const data = await response.json();
+    console.log('[검색] 응답 데이터:', data);
 
-    if (!data.documents) return [];
+    if (!data.documents) {
+      console.warn('[검색] documents 없음. 전체 응답:', data);
+      return [];
+    }
 
-    return data.documents.slice(0, 5).map((doc) => ({
+    const results = data.documents.slice(0, 5).map((doc) => ({
       name: doc.place_name,
       category: doc.category_name,
       address: doc.road_address_name || doc.address_name,
@@ -83,8 +93,10 @@ export async function searchRestaurants(query, lat, lng) {
       distance: doc.distance,
       source: 'search',
     }));
+    console.log('[검색] 파싱 결과:', results);
+    return results;
   } catch (err) {
-    console.error('검색 실패:', err);
+    console.error('[검색] 실패:', err);
     return [];
   }
 }

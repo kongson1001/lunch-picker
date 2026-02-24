@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { db, ref, onValue, push, set, update } from '../firebase';
+import { db, ref, onValue, push, set, update, remove } from '../firebase';
 import { reverseGeocodeNaver } from '../utils/naverSearch';
 import MenuList from '../components/MenuList';
 import AddMenu from '../components/AddMenu';
@@ -76,6 +76,10 @@ export default function Room() {
       source: 'custom',
       addedBy: nickname,
     });
+  };
+
+  const handleDeleteMenu = async (menuId) => {
+    await remove(ref(db, `rooms/${roomId}/menus/${menuId}`));
   };
 
   const handleVote = async (menuId) => {
@@ -170,6 +174,7 @@ export default function Room() {
         votes={room.votes}
         myVotes={myVotes}
         onVote={handleVote}
+        onDelete={handleDeleteMenu}
         status={room.status}
       />
 
