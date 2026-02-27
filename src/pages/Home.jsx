@@ -21,8 +21,9 @@ export default function Home() {
     setError('');
     try {
       await login();
-    } catch {
-      setError('카카오 로그인에 실패했습니다');
+    } catch (err) {
+      console.error('카카오 로그인 에러:', err);
+      setError(`카카오 로그인에 실패했습니다 (${err?.msg || err?.message || JSON.stringify(err)})`);
     }
   };
 
