@@ -157,29 +157,8 @@ export default function Room() {
       </header>
 
       <div className="room-body">
-        <div className="room-left">
-          {room.location && (
-            <NaverMap
-              lat={room.location.lat}
-              lng={room.location.lng}
-              markers={searchMarkers}
-              onReady={handleMapReady}
-            />
-          )}
-
-          {room.status === 'voting' && (
-            <RestaurantSearch
-              lat={room.location.lat}
-              lng={room.location.lng}
-              areaName={areaName}
-              onAdd={handleAddRestaurant}
-              onResults={handleSearchResults}
-              addedNames={addedNames}
-            />
-          )}
-        </div>
-
-        <div className="room-right">
+        <section className="room-section">
+          <h2 className="section-title">투표</h2>
           <MenuList
             menus={room.menus}
             votes={room.votes}
@@ -188,7 +167,6 @@ export default function Room() {
             onDelete={handleDeleteMenu}
             status={room.status}
           />
-
           {room.status === 'voting' && (
             <>
               <AddMenu onAdd={handleAddMenu} />
@@ -199,7 +177,29 @@ export default function Room() {
               )}
             </>
           )}
-        </div>
+        </section>
+
+        <section className="room-section">
+          <h2 className="section-title">검색</h2>
+          {room.location && (
+            <NaverMap
+              lat={room.location.lat}
+              lng={room.location.lng}
+              markers={searchMarkers}
+              onReady={handleMapReady}
+            />
+          )}
+          {room.status === 'voting' && (
+            <RestaurantSearch
+              lat={room.location.lat}
+              lng={room.location.lng}
+              areaName={areaName}
+              onAdd={handleAddRestaurant}
+              onResults={handleSearchResults}
+              addedNames={addedNames}
+            />
+          )}
+        </section>
       </div>
     </div>
   );

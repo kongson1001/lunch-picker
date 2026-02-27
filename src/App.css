@@ -199,14 +199,22 @@
   gap: 24px;
 }
 
-.room-left {
+.room-section {
   flex: 1;
   min-width: 0;
+  background: white;
+  border: 2px solid #f0e0d6;
+  border-radius: 16px;
+  padding: 20px;
 }
 
-.room-right {
-  flex: 1;
-  min-width: 0;
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e85d26;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #f0e0d6;
 }
 
 @media (max-width: 700px) {
@@ -290,8 +298,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  background: white;
-  border: 2px solid #f0f0f0;
+  background: #fffaf7;
+  border: 2px solid #f0e0d6;
   border-radius: 12px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
