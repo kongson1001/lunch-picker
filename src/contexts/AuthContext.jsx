@@ -69,13 +69,9 @@ export function AuthProvider({ children }) {
   };
 
   const login = () => {
-    if (!window.Kakao) {
-      alert('카카오 SDK가 로드되지 않았습니다');
-      return;
-    }
-    window.Kakao.Auth.authorize({
-      redirectUri: window.location.origin,
-    });
+    const restApiKey = import.meta.env.VITE_KAKAO_REST_API_KEY?.trim();
+    const redirectUri = encodeURIComponent(window.location.origin);
+    window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${restApiKey}&redirect_uri=${redirectUri}&response_type=code`;
   };
 
   const logout = () => {
