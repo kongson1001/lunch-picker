@@ -119,6 +119,76 @@
   background: #fff5f0;
 }
 
+/* ===== Room List ===== */
+.room-list {
+  margin-top: 32px;
+  text-align: left;
+}
+
+.room-list h2 {
+  font-size: 1.1rem;
+  color: #e85d26;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.room-card {
+  padding: 14px 16px;
+  background: white;
+  border: 2px solid #f0e0d6;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.room-card:hover {
+  border-color: #e85d26;
+  box-shadow: 0 2px 8px rgba(232, 93, 38, 0.15);
+}
+
+.room-card.closed {
+  opacity: 0.6;
+}
+
+.room-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.room-card-code {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #e85d26;
+  letter-spacing: 1.5px;
+}
+
+.room-status-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.room-status-badge.voting {
+  background: #fff0ea;
+  color: #e85d26;
+}
+
+.room-status-badge.closed {
+  background: #f0f0f0;
+  color: #999;
+}
+
+.room-card-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: #888;
+}
+
 /* ===== Room Page ===== */
 .room-container {
   padding-bottom: 100px;

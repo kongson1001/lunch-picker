@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createRoom, roomExists } from '../utils/room';
+import { createRoom, roomExists, onRoomList } from '../utils/room';
 
 export default function Home() {
   const [nickname, setNickname] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [rooms, setRooms] = useState([]);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onRoomList(setRooms);
+    return () => unsubscribe();
+  }, []);
 
   const handleCreate = async () => {
     if (!nickname.trim()) {
@@ -58,6 +64,16 @@ export default function Home() {
     navigate(`/room/${code}`);
   };
 
+  const handleRoomClick = (roomId) => {
+    if (!nickname.trim()) {
+      setError('닉네임을 입력해주세요');
+      return;
+    }
+    sessionStorage.setItem('nickname', nickname);
+    sessionStorage.setItem('isHost', 'false');
+    navigate(`/room/${roomId}`);
+  };
+
   return (
     <div className="home-container">
       <h1>오늘 뭐 먹지?</h1>
@@ -93,6 +109,35 @@ export default function Home() {
         />
         <button className="secondary-btn" onClick={handleJoin}>참가하기</button>
       </div>
+
+      {rooms.length > 0 && (
+        <div className="room-list">
+          <h2>활성 방 목록</h2>
+          {rooms.map((room) => {
+            const menuCount = room.menus ? Object.keys(room.menus).length : 0;
+            const voteCount = room.votes ? Object.keys(room.votes).length : 0;
+            const isClosed = room.status === 'closed';
+            return (
+              <div
+                key={room.id}
+                className={`room-card ${isClosed ? 'closed' : ''}`}
+                onClick={() => handleRoomClick(room.id)}
+              >
+                <div className="room-card-header">
+                  <span className="room-card-code">{room.id}</span>
+                  <span className={`room-status-badge ${isClosed ? 'closed' : 'voting'}`}>
+                    {isClosed ? '마감' : '투표중'}
+                  </span>
+                </div>
+                <div className="room-card-info">
+                  <span>만든 사람: {room.createdBy}</span>
+                  <span>메뉴 {menuCount}개 · 참여 {voteCount}명</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { db, ref, set, push, get } from '../firebase';
+import { db, ref, set, push, get, onValue } from '../firebase';
 
 export function generateRoomId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -28,4 +28,20 @@ export async function roomExists(roomId) {
   const roomRef = ref(db, `rooms/${roomId}`);
   const snapshot = await get(roomRef);
   return snapshot.exists();
+}
+
+export function onRoomList(callback) {
+  const roomsRef = ref(db, 'rooms');
+  return onValue(roomsRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      callback([]);
+      return;
+    }
+    const rooms = Object.entries(data).map(([id, room]) => ({
+      id,
+      ...room,
+    }));
+    callback(rooms);
+  });
 }
