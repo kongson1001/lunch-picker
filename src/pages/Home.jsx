@@ -4,6 +4,7 @@ import { createRoom, roomExists, onRoomList } from '../utils/room';
 
 export default function Home() {
   const [nickname, setNickname] = useState('');
+  const [roomName, setRoomName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -33,7 +34,7 @@ export default function Home() {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
-      const roomId = await createRoom(nickname, location);
+      const roomId = await createRoom(nickname, location, roomName.trim());
       sessionStorage.setItem('nickname', nickname);
       sessionStorage.setItem('isHost', 'true');
       navigate(`/room/${roomId}`);
@@ -89,6 +90,16 @@ export default function Home() {
         />
       </div>
 
+      <div className="input-group">
+        <input
+          type="text"
+          placeholder="방 이름 (예: 개발팀 점심)"
+          value={roomName}
+          onChange={(e) => setRoomName(e.target.value)}
+          maxLength={20}
+        />
+      </div>
+
       {error && <p className="error">{error}</p>}
 
       <div className="action-group">
@@ -124,7 +135,9 @@ export default function Home() {
                 onClick={() => handleRoomClick(room.id)}
               >
                 <div className="room-card-header">
-                  <span className="room-card-code">{room.id}</span>
+                  <span className="room-card-code">
+                    {room.roomName || room.id}
+                  </span>
                   <span className={`room-status-badge ${isClosed ? 'closed' : 'voting'}`}>
                     {isClosed ? '마감' : '투표중'}
                   </span>

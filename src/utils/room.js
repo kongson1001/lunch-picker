@@ -9,12 +9,13 @@ export function generateRoomId() {
   return result;
 }
 
-export async function createRoom(nickname, location) {
+export async function createRoom(nickname, location, roomName) {
   const roomId = generateRoomId();
   const roomRef = ref(db, `rooms/${roomId}`);
   await set(roomRef, {
     createdAt: Date.now(),
     createdBy: nickname,
+    roomName: roomName || '',
     status: 'voting',
     location: location,
     menus: {},

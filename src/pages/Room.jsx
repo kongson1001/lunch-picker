@@ -147,7 +147,7 @@ export default function Room() {
   return (
     <div className="room-container">
       <header className="room-header">
-        <h1>오늘 뭐 먹지?</h1>
+        <h1>{room.roomName || '오늘 뭐 먹지?'}</h1>
         <div className="room-code">
           <span>방 코드: <strong>{roomId}</strong></span>
           <button className="copy-btn" onClick={copyRoomCode}>링크 복사</button>
