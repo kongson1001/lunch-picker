@@ -194,6 +194,27 @@
   padding-bottom: 100px;
 }
 
+.room-body {
+  display: flex;
+  gap: 24px;
+}
+
+.room-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.room-right {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 700px) {
+  .room-body {
+    flex-direction: column;
+  }
+}
+
 .room-header {
   text-align: center;
   margin-bottom: 24px;

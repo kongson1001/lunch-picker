@@ -156,45 +156,51 @@ export default function Room() {
         <p className="participant">참가자: {nickname} {isHost && '(방장)'}</p>
       </header>
 
-      {room.location && (
-        <NaverMap
-          lat={room.location.lat}
-          lng={room.location.lng}
-          markers={searchMarkers}
-          onReady={handleMapReady}
-        />
-      )}
-
-      {room.status === 'voting' && (
-        <RestaurantSearch
-          lat={room.location.lat}
-          lng={room.location.lng}
-          areaName={areaName}
-          onAdd={handleAddRestaurant}
-          onResults={handleSearchResults}
-          addedNames={addedNames}
-        />
-      )}
-
-      <MenuList
-        menus={room.menus}
-        votes={room.votes}
-        myVotes={myVotes}
-        onVote={handleVote}
-        onDelete={handleDeleteMenu}
-        status={room.status}
-      />
-
-      {room.status === 'voting' && (
-        <>
-          <AddMenu onAdd={handleAddMenu} />
-          {isHost && (
-            <button className="close-btn" onClick={handleClose}>
-              투표 마감하기
-            </button>
+      <div className="room-body">
+        <div className="room-left">
+          {room.location && (
+            <NaverMap
+              lat={room.location.lat}
+              lng={room.location.lng}
+              markers={searchMarkers}
+              onReady={handleMapReady}
+            />
           )}
-        </>
-      )}
+
+          {room.status === 'voting' && (
+            <RestaurantSearch
+              lat={room.location.lat}
+              lng={room.location.lng}
+              areaName={areaName}
+              onAdd={handleAddRestaurant}
+              onResults={handleSearchResults}
+              addedNames={addedNames}
+            />
+          )}
+        </div>
+
+        <div className="room-right">
+          <MenuList
+            menus={room.menus}
+            votes={room.votes}
+            myVotes={myVotes}
+            onVote={handleVote}
+            onDelete={handleDeleteMenu}
+            status={room.status}
+          />
+
+          {room.status === 'voting' && (
+            <>
+              <AddMenu onAdd={handleAddMenu} />
+              {isHost && (
+                <button className="close-btn" onClick={handleClose}>
+                  투표 마감하기
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

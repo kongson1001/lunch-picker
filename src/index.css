@@ -15,7 +15,15 @@ body {
 }
 
 #root {
-  max-width: 500px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 20px 16px;
+}
+
+#root:has(.home-container) {
+  max-width: 500px;
+}
+
+#root:has(.result-container) {
+  max-width: 500px;
 }
