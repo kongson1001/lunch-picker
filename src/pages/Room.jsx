@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { db, ref, onValue, push, set, update, remove } from '../firebase';
 import { reverseGeocodeNaver } from '../utils/naverSearch';
 import MenuList from '../components/MenuList';
@@ -10,14 +11,23 @@ import RestaurantSearch from '../components/RestaurantSearch';
 export default function Room() {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const nickname = sessionStorage.getItem('nickname') || '익명';
-  const isHost = sessionStorage.getItem('isHost') === 'true';
+  const { user } = useAuth();
+
+  const nickname = user?.nickname || '익명';
+  const uid = user?.uid || '';
 
   const [room, setRoom] = useState(null);
   const [myVotes, setMyVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [areaName, setAreaName] = useState('');
   const [searchMarkers, setSearchMarkers] = useState([]);
+
+  // 로그인 안 된 상태면 홈으로
+  useEffect(() => {
+    if (!user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const roomRef = ref(db, `rooms/${roomId}`);
@@ -37,11 +47,15 @@ export default function Room() {
     return () => unsubscribe();
   }, [roomId, navigate]);
 
+  // uid 기준으로 내 투표 복원
   useEffect(() => {
-    if (room?.votes?.[nickname]) {
-      setMyVotes(room.votes[nickname].menuIds || []);
+    if (room?.votes?.[uid]) {
+      setMyVotes(room.votes[uid].menuIds || []);
     }
-  }, [room, nickname]);
+  }, [room, uid]);
+
+  // 방장 판별: createdByUid 기준
+  const computedIsHost = room?.createdByUid === uid;
 
   const handleMapReady = useCallback(async () => {
     if (!room?.location) return;
@@ -82,13 +96,14 @@ export default function Room() {
     await remove(ref(db, `rooms/${roomId}/menus/${menuId}`));
   };
 
+  // 투표 키: uid 기준 (1인 1투표)
   const handleVote = async (menuId) => {
     const newVotes = myVotes.includes(menuId)
       ? myVotes.filter((id) => id !== menuId)
       : [...myVotes, menuId];
     setMyVotes(newVotes);
 
-    const voteRef = ref(db, `rooms/${roomId}/votes/${nickname}`);
+    const voteRef = ref(db, `rooms/${roomId}/votes/${uid}`);
     await set(voteRef, { nickname, menuIds: newVotes });
   };
 
@@ -132,8 +147,6 @@ export default function Room() {
   };
 
   const handleLeave = () => {
-    sessionStorage.removeItem('nickname');
-    sessionStorage.removeItem('isHost');
     navigate('/');
   };
 
@@ -153,7 +166,7 @@ export default function Room() {
           <button className="copy-btn" onClick={copyRoomCode}>링크 복사</button>
           <button className="leave-btn" onClick={handleLeave}>나가기</button>
         </div>
-        <p className="participant">참가자: {nickname} {isHost && '(방장)'}</p>
+        <p className="participant">참가자: {nickname} {computedIsHost && '(방장)'}</p>
       </header>
 
       <div className="room-body">
@@ -170,7 +183,7 @@ export default function Room() {
           {room.status === 'voting' && (
             <>
               <AddMenu onAdd={handleAddMenu} />
-              {isHost && (
+              {computedIsHost && (
                 <button className="close-btn" onClick={handleClose}>
                   투표 마감하기
                 </button>

@@ -1,3 +1,67 @@
+/* ===== Kakao Login & Profile ===== */
+.kakao-login-btn {
+  width: 100%;
+  padding: 14px;
+  background: #FEE500;
+  color: #000000;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s;
+}
+
+.kakao-login-btn:hover {
+  background: #f0d900;
+}
+
+.profile-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fffaf7;
+  border: 2px solid #f0e0d6;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.profile-image {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.logout-btn {
+  padding: 4px 12px;
+  background: white;
+  color: #999;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #f5f5f5;
+}
+
 /* ===== Home Page ===== */
 .home-container {
   text-align: center;

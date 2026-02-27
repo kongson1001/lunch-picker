@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { createRoom, roomExists, onRoomList } from '../utils/room';
 
 export default function Home() {
-  const [nickname, setNickname] = useState('');
+  const { user, login, logout, loading: authLoading } = useAuth();
   const [roomName, setRoomName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,11 +17,16 @@ export default function Home() {
     return () => unsubscribe();
   }, []);
 
-  const handleCreate = async () => {
-    if (!nickname.trim()) {
-      setError('닉네임을 입력해주세요');
-      return;
+  const handleLogin = async () => {
+    setError('');
+    try {
+      await login();
+    } catch {
+      setError('카카오 로그인에 실패했습니다');
     }
+  };
+
+  const handleCreate = async () => {
     setLoading(true);
     setError('');
     try {
@@ -34,11 +40,9 @@ export default function Home() {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
-      const roomId = await createRoom(nickname, location, roomName.trim());
-      sessionStorage.setItem('nickname', nickname);
-      sessionStorage.setItem('isHost', 'true');
+      const roomId = await createRoom(user.nickname, location, roomName.trim(), user.uid);
       navigate(`/room/${roomId}`);
-    } catch (err) {
+    } catch {
       setError('위치 정보를 가져올 수 없습니다. 위치 권한을 허용해주세요.');
     } finally {
       setLoading(false);
@@ -46,10 +50,6 @@ export default function Home() {
   };
 
   const handleJoin = async () => {
-    if (!nickname.trim()) {
-      setError('닉네임을 입력해주세요');
-      return;
-    }
     if (!joinCode.trim()) {
       setError('방 코드를 입력해주세요');
       return;
@@ -60,34 +60,50 @@ export default function Home() {
       setError('존재하지 않는 방입니다');
       return;
     }
-    sessionStorage.setItem('nickname', nickname);
-    sessionStorage.setItem('isHost', 'false');
     navigate(`/room/${code}`);
   };
 
   const handleRoomClick = (roomId) => {
-    if (!nickname.trim()) {
-      setError('닉네임을 입력해주세요');
-      return;
-    }
-    sessionStorage.setItem('nickname', nickname);
-    sessionStorage.setItem('isHost', 'false');
     navigate(`/room/${roomId}`);
   };
 
+  if (authLoading) {
+    return <div className="loading">로딩 중...</div>;
+  }
+
+  // 비로그인 상태: 카카오 로그인 버튼만 표시
+  if (!user) {
+    return (
+      <div className="home-container">
+        <h1>오늘 뭐 먹지?</h1>
+        <p className="subtitle">팀 점심 메뉴를 투표로 정해보세요</p>
+
+        {error && <p className="error">{error}</p>}
+
+        <div className="action-group">
+          <button className="kakao-login-btn" onClick={handleLogin}>
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path fillRule="evenodd" clipRule="evenodd" d="M9 0.6C4.03 0.6 0 3.713 0 7.554c0 2.486 1.656 4.672 4.148 5.905l-1.054 3.9c-.093.345.302.616.596.408l4.67-3.096c.21.015.422.023.64.023 4.97 0 9-3.113 9-6.954C18 3.713 13.97 0.6 9 0.6" fill="#000000"/>
+            </svg>
+            카카오로 시작하기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 로그인 상태: 프로필 + 방 만들기/참가 UI
   return (
     <div className="home-container">
       <h1>오늘 뭐 먹지?</h1>
       <p className="subtitle">팀 점심 메뉴를 투표로 정해보세요</p>
 
-      <div className="input-group">
-        <input
-          type="text"
-          placeholder="닉네임 입력"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          maxLength={10}
-        />
+      <div className="profile-card">
+        {user.profileImage && (
+          <img src={user.profileImage} alt="" className="profile-image" />
+        )}
+        <span className="profile-name">{user.nickname}</span>
+        <button className="logout-btn" onClick={logout}>로그아웃</button>
       </div>
 
       <div className="input-group">
