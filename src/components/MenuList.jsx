@@ -11,10 +11,18 @@ export default function MenuList({ menus, votes, myVotes, onVote, onDelete, stat
     return count;
   };
 
+  const getVoters = (menuId) => {
+    if (!votes) return [];
+    return Object.values(votes)
+      .filter((vote) => vote.menuIds && vote.menuIds.includes(menuId))
+      .map((vote) => vote.nickname);
+  };
+
   return (
     <div className="menu-list">
       {Object.entries(menus || {}).map(([menuId, menu]) => {
         const voteCount = getVoteCount(menuId);
+        const voters = getVoters(menuId);
         const isVoted = myVotes.includes(menuId);
 
         return (
@@ -25,6 +33,9 @@ export default function MenuList({ menus, votes, myVotes, onVote, onDelete, stat
               <span className="source-badge">
                 {menu.source === 'search' ? '🔍 검색 추가' : menu.source === 'naver' ? '📍 주변 음식점' : '✏️ 직접 추가'}
               </span>
+              {voters.length > 0 && (
+                <p className="voter-list">{voters.join(', ')}</p>
+              )}
             </div>
             <div className="menu-vote">
               <span className="vote-count">{voteCount}표</span>

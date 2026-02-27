@@ -235,6 +235,22 @@
   background: #eee;
 }
 
+.leave-btn {
+  padding: 4px 12px;
+  background: white;
+  color: #e53e3e;
+  border: 1px solid #e53e3e;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.leave-btn:hover {
+  background: #fff5f5;
+}
+
 .participant {
   color: #888;
   font-size: 0.85rem;
@@ -279,6 +295,12 @@
 .source-badge {
   font-size: 0.75rem;
   color: #aaa;
+}
+
+.voter-list {
+  font-size: 0.78rem;
+  color: #e85d26;
+  margin-top: 4px;
 }
 
 .menu-vote {

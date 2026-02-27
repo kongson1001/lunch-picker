@@ -48,10 +48,14 @@ export default function NaverMap({ lat, lng, markers = [], onReady }) {
 
     markers.forEach((m) => {
       if (m.lat && m.lng) {
-        new window.naver.maps.Marker({
+        const marker = new window.naver.maps.Marker({
           position: new window.naver.maps.LatLng(m.lat, m.lng),
           map,
           title: m.name,
+        });
+        window.naver.maps.Event.addListener(marker, 'click', () => {
+          const query = encodeURIComponent(m.name);
+          window.open(`https://map.naver.com/v5/search/${query}`, '_blank');
         });
       }
     });

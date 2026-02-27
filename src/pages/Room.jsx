@@ -131,6 +131,12 @@ export default function Room() {
     alert('링크가 복사되었습니다!');
   };
 
+  const handleLeave = () => {
+    sessionStorage.removeItem('nickname');
+    sessionStorage.removeItem('isHost');
+    navigate('/');
+  };
+
   // 이미 추가된 메뉴 이름 Set (중복 추가 방지)
   const addedNames = new Set(
     Object.values(room?.menus || {}).map((m) => m.name)
@@ -145,6 +151,7 @@ export default function Room() {
         <div className="room-code">
           <span>방 코드: <strong>{roomId}</strong></span>
           <button className="copy-btn" onClick={copyRoomCode}>링크 복사</button>
+          <button className="leave-btn" onClick={handleLeave}>나가기</button>
         </div>
         <p className="participant">참가자: {nickname} {isHost && '(방장)'}</p>
       </header>
