@@ -10,7 +10,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // 카카오 SDK 초기화
-    const jsKey = import.meta.env.VITE_KAKAO_JS_KEY;
+    const jsKey = import.meta.env.VITE_KAKAO_JS_KEY?.trim();
     if (window.Kakao && !window.Kakao.isInitialized()) {
       window.Kakao.init(jsKey);
     }
