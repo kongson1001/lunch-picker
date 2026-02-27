@@ -9,6 +9,21 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 카카오 SDK 초기화
+    const jsKey = import.meta.env.VITE_KAKAO_JS_KEY;
+    if (window.Kakao && !window.Kakao.isInitialized()) {
+      window.Kakao.init(jsKey);
+    }
+
+    // 카카오 로그인 리다이렉트 후 code 처리
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    if (code) {
+      window.history.replaceState({}, '', window.location.pathname);
+      handleAuthCode(code);
+      return;
+    }
+
     // localStorage에서 캐시된 유저 정보 복원
     const cached = localStorage.getItem(STORAGE_KEY);
     if (cached) {
@@ -18,53 +33,52 @@ export function AuthProvider({ children }) {
         localStorage.removeItem(STORAGE_KEY);
       }
     }
-
-    // 카카오 SDK 초기화
-    const jsKey = import.meta.env.VITE_KAKAO_JS_KEY;
-    if (window.Kakao && !window.Kakao.isInitialized()) {
-      window.Kakao.init(jsKey);
-    }
-
     setLoading(false);
   }, []);
 
-  const login = () => {
-    return new Promise((resolve, reject) => {
-      if (!window.Kakao) {
-        reject(new Error('카카오 SDK가 로드되지 않았습니다'));
-        return;
+  const handleAuthCode = async (code) => {
+    try {
+      const redirectUri = window.location.origin;
+      const res = await fetch(
+        `/api/kakaoAuth?code=${encodeURIComponent(code)}&redirectUri=${encodeURIComponent(redirectUri)}`
+      );
+      const data = await res.json();
+
+      if (!data.access_token) {
+        throw new Error(data.error_description || '토큰 발급 실패');
       }
 
-      window.Kakao.Auth.login({
-        success: () => {
-          window.Kakao.API.request({
-            url: '/v2/user/me',
-            success: (res) => {
-              const kakaoUser = {
-                uid: `kakao_${res.id}`,
-                nickname: res.kakao_account?.profile?.nickname || `사용자${res.id}`,
-                profileImage: res.kakao_account?.profile?.profile_image_url || null,
-              };
-              setUser(kakaoUser);
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(kakaoUser));
-              resolve(kakaoUser);
-            },
-            fail: (err) => {
-              reject(err);
-            },
-          });
-        },
-        fail: (err) => {
-          reject(err);
-        },
+      // 액세스 토큰으로 사용자 정보 조회
+      const userRes = await fetch('https://kapi.kakao.com/v2/user/me', {
+        headers: { Authorization: `Bearer ${data.access_token}` },
       });
+      const userData = await userRes.json();
+
+      const kakaoUser = {
+        uid: `kakao_${userData.id}`,
+        nickname: userData.kakao_account?.profile?.nickname || `사용자${userData.id}`,
+        profileImage: userData.kakao_account?.profile?.profile_image_url || null,
+      };
+
+      setUser(kakaoUser);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(kakaoUser));
+    } catch (err) {
+      console.error('카카오 로그인 실패:', err);
+    }
+    setLoading(false);
+  };
+
+  const login = () => {
+    if (!window.Kakao) {
+      alert('카카오 SDK가 로드되지 않았습니다');
+      return;
+    }
+    window.Kakao.Auth.authorize({
+      redirectUri: window.location.origin,
     });
   };
 
   const logout = () => {
-    if (window.Kakao?.Auth?.getAccessToken()) {
-      window.Kakao.Auth.logout();
-    }
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
   };
