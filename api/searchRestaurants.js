@@ -26,9 +26,14 @@ export default async function handler(req, res) {
   const url = `https://dapi.kakao.com/v2/local/search/keyword.json?${params}`;
   console.log('[API] 카카오 검색 요청:', url);
 
+  const origin = req.headers.origin || req.headers.referer || 'https://lunch-picker.vercel.app';
+
   try {
     const response = await fetch(url, {
-      headers: { Authorization: `KakaoAK ${apiKey}` },
+      headers: {
+        Authorization: `KakaoAK ${apiKey}`,
+        KA: `sdk/2.7.4 os/web origin/${origin}`,
+      },
     });
 
     const data = await response.json();
