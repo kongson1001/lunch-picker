@@ -1,4 +1,4 @@
-import { db, ref, set, push, get, onValue } from '../firebase';
+import { db, ref, set, push, get, onValue, remove } from '../firebase';
 
 export function generateRoomId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -30,6 +30,32 @@ export async function roomExists(roomId) {
   const roomRef = ref(db, `rooms/${roomId}`);
   const snapshot = await get(roomRef);
   return snapshot.exists();
+}
+
+// 방장 외 다른 사람이 투표(참여)했으면 true
+export function hasOtherParticipants(room, creatorUid) {
+  const votes = room.votes || {};
+  return Object.keys(votes).some((uid) => uid !== creatorUid);
+}
+
+export async function deleteRoom(roomId) {
+  await remove(ref(db, `rooms/${roomId}`));
+}
+
+export async function sendMessage(roomId, user, text) {
+  const messagesRef = ref(db, `rooms/${roomId}/messages`);
+  const newRef = push(messagesRef);
+  await set(newRef, {
+    uid: user.uid,
+    nickname: user.nickname,
+    profileImage: user.profileImage || null,
+    text: text.trim(),
+    createdAt: Date.now(),
+  });
+}
+
+export async function deleteMessage(roomId, messageId) {
+  await remove(ref(db, `rooms/${roomId}/messages/${messageId}`));
 }
 
 export function onRoomList(callback) {
