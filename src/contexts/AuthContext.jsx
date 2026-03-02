@@ -80,6 +80,7 @@ export function AuthProvider({ children }) {
   };
 
   const updateProfile = (nickname, profileImage) => {
+    if (!user) return;
     const updated = { ...user, nickname, profileImage };
     setUser(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
