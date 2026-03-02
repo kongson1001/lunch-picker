@@ -167,7 +167,7 @@ export default function Home() {
           <>
             {user.profileImage
               ? <img src={user.profileImage} alt="" className="profile-image" />
-              : <div className="profile-image-placeholder">{user.nickname[0]}</div>
+              : <div className="profile-image-placeholder">{user.nickname?.[0] || '?'}</div>
             }
             <span className="profile-name">{user.nickname}</span>
             <button className="profile-edit-btn" onClick={handleEditStart}>편집</button>
