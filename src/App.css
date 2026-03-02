@@ -229,6 +229,28 @@
   letter-spacing: 1.5px;
 }
 
+.room-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.room-delete-btn {
+  padding: 3px 10px;
+  background: white;
+  color: #e53e3e;
+  border: 1px solid #e53e3e;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.room-delete-btn:hover {
+  background: #fff5f5;
+}
+
 .room-status-badge {
   padding: 3px 10px;
   border-radius: 20px;
@@ -341,6 +363,22 @@
 }
 
 .leave-btn:hover {
+  background: #fff5f5;
+}
+
+.delete-room-btn {
+  padding: 4px 12px;
+  background: white;
+  color: #e53e3e;
+  border: 1px solid #e53e3e;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.delete-room-btn:hover {
   background: #fff5f5;
 }
 
@@ -856,4 +894,171 @@
   border-radius: 12px;
   overflow: hidden;
   border: 2px solid #f0f0f0;
+}
+
+/* ===== Chat ===== */
+.chat-section {
+  margin-top: 24px;
+  background: white;
+  border-radius: 16px;
+  border: 1.5px solid #f0e8e0;
+  padding: 20px;
+}
+
+.chat-messages {
+  height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-right: 4px;
+}
+
+.chat-empty {
+  text-align: center;
+  color: #bbb;
+  font-size: 0.9rem;
+  margin: auto;
+}
+
+/* 메시지 행 */
+.chat-message {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.chat-message.mine {
+  flex-direction: row-reverse;
+}
+
+/* 아바타 */
+.chat-avatar img,
+.chat-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.chat-avatar-placeholder {
+  background: #f0e0d6;
+  color: #e85d26;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* 닉네임 + 말풍선 묶음 */
+.chat-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 65%;
+}
+
+.chat-message.mine .chat-bubble-wrap {
+  align-items: flex-end;
+}
+
+.chat-nickname {
+  font-size: 0.75rem;
+  color: #999;
+  padding-left: 4px;
+}
+
+/* 말풍선 행 (삭제버튼 + 말풍선) */
+.chat-bubble-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.chat-message.mine .chat-bubble-row {
+  flex-direction: row-reverse;
+}
+
+/* 말풍선 */
+.chat-bubble {
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.chat-message.others .chat-bubble {
+  background: #f5f5f5;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+
+.chat-message.mine .chat-bubble {
+  background: linear-gradient(135deg, #ff7b54, #e85d26);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+/* 삭제 버튼 */
+.chat-delete-btn {
+  font-size: 0.7rem;
+  color: #ccc;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.chat-delete-btn:hover {
+  color: #e53e3e;
+}
+
+/* 입력창 */
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1.5px solid #e8ddd8;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.chat-input:focus {
+  border-color: #e85d26;
+}
+
+.chat-send-btn {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #ff7b54, #e85d26);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.chat-send-btn:hover {
+  opacity: 0.9;
+}
+
+.chat-send-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
