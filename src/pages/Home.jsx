@@ -4,12 +4,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { createRoom, roomExists, onRoomList, deleteRoom, hasOtherParticipants } from '../utils/room';
 
 export default function Home() {
-  const { user, login, logout, loading: authLoading } = useAuth();
+  const { user, login, logout, loading: authLoading, updateProfile } = useAuth();
   const [roomName, setRoomName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [rooms, setRooms] = useState([]);
+  const [editing, setEditing] = useState(false);
+  const [editNickname, setEditNickname] = useState('');
+  const [editImage, setEditImage] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,6 +81,31 @@ export default function Home() {
     await deleteRoom(room.id);
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setEditImage(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleEditStart = () => {
+    setEditNickname(user.nickname);
+    setEditImage(user.profileImage || null);
+    setEditing(true);
+  };
+
+  const handleEditSave = () => {
+    const trimmed = editNickname.trim();
+    if (!trimmed) return;
+    updateProfile(trimmed, editImage);
+    setEditing(false);
+  };
+
+  const handleEditCancel = () => {
+    setEditing(false);
+  };
+
   if (authLoading) {
     return <div className="loading">로딩 중...</div>;
   }
@@ -110,11 +138,42 @@ export default function Home() {
       <p className="subtitle">팀 점심 메뉴를 투표로 정해보세요</p>
 
       <div className="profile-card">
-        {user.profileImage && (
-          <img src={user.profileImage} alt="" className="profile-image" />
+        {editing ? (
+          <>
+            <label className="profile-image-label">
+              {editImage
+                ? <img src={editImage} alt="" className="profile-image" />
+                : <div className="profile-image-placeholder">{editNickname[0] || '?'}</div>
+              }
+              <input
+                type="file"
+                accept="image/*"
+                className="profile-image-input"
+                onChange={handleImageChange}
+              />
+            </label>
+            <input
+              type="text"
+              className="profile-edit-input"
+              value={editNickname}
+              onChange={(e) => setEditNickname(e.target.value)}
+              maxLength={20}
+              autoFocus
+            />
+            <button className="profile-save-btn" onClick={handleEditSave}>저장</button>
+            <button className="logout-btn" onClick={handleEditCancel}>취소</button>
+          </>
+        ) : (
+          <>
+            {user.profileImage
+              ? <img src={user.profileImage} alt="" className="profile-image" />
+              : <div className="profile-image-placeholder">{user.nickname[0]}</div>
+            }
+            <span className="profile-name">{user.nickname}</span>
+            <button className="profile-edit-btn" onClick={handleEditStart}>편집</button>
+            <button className="logout-btn" onClick={logout}>로그아웃</button>
+          </>
         )}
-        <span className="profile-name">{user.nickname}</span>
-        <button className="logout-btn" onClick={logout}>로그아웃</button>
       </div>
 
       <div className="input-group">
