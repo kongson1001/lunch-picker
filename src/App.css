@@ -309,6 +309,46 @@
   }
 }
 
+@media (max-width: 480px) {
+  /* room-code 헤더 버튼 줄바꿈 */
+  .room-code {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  /* 참가하기 버튼 padding 축소 */
+  .secondary-btn {
+    padding: 14px 14px;
+    font-size: 0.9rem;
+  }
+
+  /* 추가 버튼 */
+  .add-menu button {
+    padding: 12px 12px;
+    font-size: 0.85rem;
+  }
+
+  /* 검색 버튼 */
+  .search-bar button {
+    padding: 12px 12px;
+    font-size: 0.85rem;
+  }
+
+  /* 전송 버튼 */
+  .chat-send-btn {
+    padding: 12px 14px;
+    font-size: 0.85rem;
+  }
+
+  /* 검색 결과 추가 버튼 */
+  .search-add-btn {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    margin-left: 6px;
+  }
+}
+
 .room-header {
   text-align: center;
   margin-bottom: 24px;
