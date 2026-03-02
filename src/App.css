@@ -827,8 +827,32 @@
 }
 
 /* ===== Naver Map ===== */
+.location-update-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #fff;
+  border: 1.5px solid #e85d26;
+  border-radius: 8px;
+  color: #e85d26;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.location-update-btn:hover {
+  background: #fff5f0;
+}
+
+.location-update-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .map-container {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   border-radius: 12px;
   overflow: hidden;
   border: 2px solid #f0f0f0;

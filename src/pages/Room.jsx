@@ -21,6 +21,8 @@ export default function Room() {
   const [loading, setLoading] = useState(true);
   const [areaName, setAreaName] = useState('');
   const [searchMarkers, setSearchMarkers] = useState([]);
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locating, setLocating] = useState(false);
 
   // 로그인 안 된 상태면 홈으로
   useEffect(() => {
@@ -57,11 +59,37 @@ export default function Room() {
   // 방장 판별: createdByUid 기준
   const computedIsHost = room?.createdByUid === uid;
 
+  // room.location이 처음 로드될 때 currentLocation 초기화
+  useEffect(() => {
+    if (room?.location && !currentLocation) {
+      setCurrentLocation(room.location);
+    }
+  }, [room?.location]);
+
   const handleMapReady = useCallback(async () => {
     if (!room?.location) return;
-    const name = await reverseGeocodeNaver(room.location.lat, room.location.lng);
+    const loc = currentLocation || room.location;
+    const name = await reverseGeocodeNaver(loc.lat, loc.lng);
     setAreaName(name);
-  }, [room?.location]);
+  }, [room?.location, currentLocation]);
+
+  const handleUpdateLocation = () => {
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setCurrentLocation(loc);
+        const name = await reverseGeocodeNaver(loc.lat, loc.lng);
+        setAreaName(name);
+        setLocating(false);
+      },
+      () => {
+        alert('위치 정보를 가져올 수 없습니다. 위치 권한을 확인해주세요.');
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
 
   const handleSearchResults = (results) => {
     setSearchMarkers(
@@ -194,18 +222,27 @@ export default function Room() {
 
         <section className="room-section">
           <h2 className="section-title">검색</h2>
-          {room.location && (
-            <NaverMap
-              lat={room.location.lat}
-              lng={room.location.lng}
-              markers={searchMarkers}
-              onReady={handleMapReady}
-            />
+          {currentLocation && (
+            <>
+              <NaverMap
+                lat={currentLocation.lat}
+                lng={currentLocation.lng}
+                markers={searchMarkers}
+                onReady={handleMapReady}
+              />
+              <button
+                className="location-update-btn"
+                onClick={handleUpdateLocation}
+                disabled={locating}
+              >
+                {locating ? '위치 가져오는 중...' : '내 현재 위치로 갱신'}
+              </button>
+            </>
           )}
           {room.status === 'voting' && (
             <RestaurantSearch
-              lat={room.location.lat}
-              lng={room.location.lng}
+              lat={currentLocation?.lat || room.location?.lat}
+              lng={currentLocation?.lng || room.location?.lng}
               areaName={areaName}
               onAdd={handleAddRestaurant}
               onResults={handleSearchResults}
