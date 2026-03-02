@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db, ref, onValue, push, set, update, remove } from '../firebase';
+import { deleteRoom, hasOtherParticipants } from '../utils/room';
 import { reverseGeocodeNaver } from '../utils/naverSearch';
 import MenuList from '../components/MenuList';
 import AddMenu from '../components/AddMenu';
 import NaverMap from '../components/NaverMap';
 import RestaurantSearch from '../components/RestaurantSearch';
+import Chat from '../components/Chat';
 
 export default function Room() {
   const { roomId } = useParams();
@@ -178,6 +180,16 @@ export default function Room() {
     navigate('/');
   };
 
+  const handleDeleteRoom = async () => {
+    if (hasOtherParticipants(room, uid)) {
+      alert('다른 참여자가 있는 방은 삭제할 수 없습니다.');
+      return;
+    }
+    if (!window.confirm(`"${room.roomName || roomId}" 방을 삭제할까요?`)) return;
+    await deleteRoom(roomId);
+    navigate('/');
+  };
+
   // 이미 추가된 메뉴 이름 Set (중복 추가 방지)
   const addedNames = new Set(
     Object.values(room?.menus || {}).map((m) => m.name)
@@ -193,6 +205,9 @@ export default function Room() {
           <span>방 코드: <strong>{roomId}</strong></span>
           <button className="copy-btn" onClick={copyRoomCode}>링크 복사</button>
           <button className="leave-btn" onClick={handleLeave}>나가기</button>
+          {computedIsHost && (
+            <button className="delete-room-btn" onClick={handleDeleteRoom}>방 삭제</button>
+          )}
         </div>
         <p className="participant">참가자: {nickname} {computedIsHost && '(방장)'}</p>
       </header>
@@ -251,6 +266,8 @@ export default function Room() {
           )}
         </section>
       </div>
+
+      <Chat roomId={roomId} user={user} />
     </div>
   );
 }
