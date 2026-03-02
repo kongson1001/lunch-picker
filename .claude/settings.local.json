@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(printf %s:*)"
+      "Bash(printf %s:*)",
+      "Bash(./node_modules/.bin/vite build:*)",
+      "Bash(ls:*)",
+      "Bash(node:*)",
+      "Bash(where gh:*)"
     ]
   }
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { createRoom, roomExists, onRoomList } from '../utils/room';
+import { createRoom, roomExists, onRoomList, deleteRoom, hasOtherParticipants } from '../utils/room';
 
 export default function Home() {
   const { user, login, logout, loading: authLoading } = useAuth();
@@ -66,6 +66,16 @@ export default function Home() {
 
   const handleRoomClick = (roomId) => {
     navigate(`/room/${roomId}`);
+  };
+
+  const handleDeleteRoom = async (e, room) => {
+    e.stopPropagation();
+    if (hasOtherParticipants(room, user.uid)) {
+      alert('다른 참여자가 있는 방은 삭제할 수 없습니다.');
+      return;
+    }
+    if (!window.confirm(`"${room.roomName || room.id}" 방을 삭제할까요?`)) return;
+    await deleteRoom(room.id);
   };
 
   if (authLoading) {
@@ -155,9 +165,19 @@ export default function Home() {
                   <span className="room-card-code">
                     {room.roomName || room.id}
                   </span>
-                  <span className={`room-status-badge ${isClosed ? 'closed' : 'voting'}`}>
-                    {isClosed ? '마감' : '투표중'}
-                  </span>
+                  <div className="room-card-header-right">
+                    <span className={`room-status-badge ${isClosed ? 'closed' : 'voting'}`}>
+                      {isClosed ? '마감' : '투표중'}
+                    </span>
+                    {room.createdByUid === user?.uid && (
+                      <button
+                        className="room-delete-btn"
+                        onClick={(e) => handleDeleteRoom(e, room)}
+                      >
+                        삭제
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="room-card-info">
                   <span>만든 사람: {room.createdBy}</span>
