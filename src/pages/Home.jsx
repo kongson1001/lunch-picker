@@ -121,14 +121,26 @@ export default function Home() {
     }
   };
 
-  const handleAdminLoginSubmit = () => {
-    if (adminId === 'kyoungmin' && adminPw === '15901590') {
-      loginAsAdmin();
-      setAdminLoginModal(false);
-      setAdminId('');
-      setAdminPw('');
-    } else {
-      alert('관리자 계정 정보가 일치하지 않습니다.');
+  const handleAdminLoginSubmit = async () => {
+    try {
+      const res = await fetch('/api/adminAuth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId, adminPw }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        loginAsAdmin(data.adminUser);
+        setAdminLoginModal(false);
+        setAdminId('');
+        setAdminPw('');
+      } else {
+        alert(data.error || '관리자 계정 정보가 일치하지 않습니다.');
+      }
+    } catch (err) {
+      console.error('관리자 로그인 요청 실패:', err);
+      alert('서버와 통신 중 오류가 발생했습니다.');
     }
   };
 

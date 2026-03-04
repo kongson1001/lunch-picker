@@ -13,12 +13,17 @@ import {
 // 즐겨찾기 추가
 export const addFavorite = async (userId, restaurant) => {
   if (!userId) return;
-  // 식당 ID가 없는 경우 이름을 ID 대용으로 사용 (네이버 검색 결과 기준)
-  const favId = restaurant.id || restaurant.title.replace(/<[^>]*>?/gm, '');
+  // 식당 이름 추출 (name 또는 title 필드 중 있는 것 사용, HTML 태그 제거)
+  const rawName = restaurant.name || restaurant.title || '알 수 없는 식당';
+  const cleanName = rawName.replace(/<[^>]*>?/gm, '');
+  
+  // ID가 없으면 정제된 이름을 ID로 사용
+  const favId = restaurant.id || cleanName;
   const favRef = doc(db, 'users', userId, 'favorites', favId);
   
   await setDoc(favRef, {
     ...restaurant,
+    name: cleanName, // 이름을 정제된 버전으로 통일
     addedAt: serverTimestamp()
   });
 };

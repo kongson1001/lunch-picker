@@ -74,12 +74,10 @@ export function AuthProvider({ children }) {
     window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${restApiKey}&redirect_uri=${redirectUri}&response_type=code`;
   };
 
-  const loginAsAdmin = () => {
+  const loginAsAdmin = (adminData) => {
     const adminUser = {
-      uid: 'admin_test_id',
-      nickname: '관리자(테스트)',
+      ...adminData,
       profileImage: null,
-      isAdmin: true,
     };
     setUser(adminUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(adminUser));

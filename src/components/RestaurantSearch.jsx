@@ -46,19 +46,23 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
   };
 
   const toggleFavorite = async (e, restaurant) => {
+    e.preventDefault();
     e.stopPropagation();
     if (!user) return;
 
-    const restaurantId = restaurant.id || restaurant.name;
-    const isFav = favorites.some(f => (f.id === restaurantId || f.name === restaurant.name));
+    // 네이버 검색 결과의 name과 즐겨찾기 목록의 name 비교 (특수문자/HTML 태그 제거된 상태 고려)
+    const restaurantName = (restaurant.name || restaurant.title || '').replace(/<[^>]*>?/gm, '');
+    const isFav = favorites.some(f => f.name === restaurantName);
 
     try {
       if (isFav) {
-        const favToDelete = favorites.find(f => (f.id === restaurantId || f.name === restaurant.name));
-        await removeFavorite(user.uid, favToDelete.id);
+        const favToDelete = favorites.find(f => f.name === restaurantName);
+        if (favToDelete) {
+          await removeFavorite(user.uid, favToDelete.id);
+        }
       } else {
         await addFavorite(user.uid, {
-          name: restaurant.name,
+          name: restaurantName,
           category: restaurant.category,
           address: restaurant.address,
           roadAddress: restaurant.roadAddress,
@@ -66,9 +70,11 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
           mapy: restaurant.mapy
         });
       }
-      loadFavorites();
+      // 즉시 목록 갱신
+      await loadFavorites();
     } catch (err) {
       console.error('즐겨찾기 처리 실패:', err);
+      alert('즐겨찾기 처리 중 오류가 발생했습니다.');
     }
   };
 
@@ -77,8 +83,8 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
   };
 
   const isFavorite = (restaurant) => {
-    const restaurantId = restaurant.id || restaurant.name;
-    return favorites.some(f => (f.id === restaurantId || f.name === restaurant.name));
+    const restaurantName = (restaurant.name || restaurant.title || '').replace(/<[^>]*>?/gm, '');
+    return favorites.some(f => f.name === restaurantName);
   };
 
   return (
