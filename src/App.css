@@ -451,6 +451,17 @@
   box-shadow: 0 2px 8px rgba(255, 123, 84, 0.15);
 }
 
+.menu-item.first-place {
+  border-color: #e85d26;
+  background: #fff5f0;
+  box-shadow: 0 3px 12px rgba(232, 93, 38, 0.2);
+}
+
+.crown {
+  font-size: 1.2rem;
+  margin-right: 4px;
+}
+
 .menu-info h3 {
   font-size: 1rem;
   font-weight: 600;

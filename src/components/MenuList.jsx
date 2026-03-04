@@ -18,17 +18,26 @@ export default function MenuList({ menus, votes, myVotes, onVote, onDelete, stat
       .map((vote) => vote.nickname);
   };
 
+  const sortedMenus = Object.entries(menus || {})
+    .map(([menuId, menu]) => ({ menuId, menu, voteCount: getVoteCount(menuId) }))
+    .sort((a, b) => b.voteCount - a.voteCount);
+
+  const topCount = sortedMenus.length > 0 ? sortedMenus[0].voteCount : 0;
+
   return (
     <div className="menu-list">
-      {Object.entries(menus || {}).map(([menuId, menu]) => {
-        const voteCount = getVoteCount(menuId);
+      {sortedMenus.map(({ menuId, menu, voteCount }) => {
         const voters = getVoters(menuId);
         const isVoted = myVotes.includes(menuId);
+        const isFirst = voteCount > 0 && voteCount === topCount;
 
         return (
-          <div key={menuId} className={`menu-item ${isVoted ? 'voted' : ''}`}>
+          <div key={menuId} className={`menu-item ${isVoted ? 'voted' : ''} ${isFirst ? 'first-place' : ''}`}>
             <div className="menu-info">
-              <h3>{menu.name}</h3>
+              <h3>
+                {isFirst && <span className="crown">👑</span>}
+                {menu.name}
+              </h3>
               {menu.address && <p className="address">{menu.address}</p>}
               <span className="source-badge">
                 {menu.source === 'search' ? '🔍 검색 추가' : menu.source === 'naver' ? '📍 주변 음식점' : '✏️ 직접 추가'}
