@@ -9,10 +9,10 @@ export function generateRoomId() {
   return result;
 }
 
-export async function createRoom(nickname, location, roomName, uid) {
+export async function createRoom(nickname, location, roomName, uid, password = '') {
   const roomId = generateRoomId();
   const roomRef = ref(db, `rooms/${roomId}`);
-  await set(roomRef, {
+  const roomData = {
     createdAt: Date.now(),
     createdBy: nickname,
     createdByUid: uid || '',
@@ -22,8 +22,17 @@ export async function createRoom(nickname, location, roomName, uid) {
     menus: {},
     votes: {},
     result: null,
-  });
+  };
+  if (password) {
+    roomData.password = password;
+  }
+  await set(roomRef, roomData);
   return roomId;
+}
+
+export async function getRoomPassword(roomId) {
+  const snapshot = await get(ref(db, `rooms/${roomId}/password`));
+  return snapshot.val() || '';
 }
 
 export async function roomExists(roomId) {

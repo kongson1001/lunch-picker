@@ -57,7 +57,7 @@ export function AuthProvider({ children }) {
       const kakaoUser = {
         uid: `kakao_${userData.id}`,
         nickname: userData.kakao_account?.profile?.nickname || `사용자${userData.id}`,
-        profileImage: userData.kakao_account?.profile?.profile_image_url || null,
+        profileImage: null,
       };
 
       setUser(kakaoUser);
