@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const params = new URLSearchParams({
     query,
     category_group_code: 'FD6',
-    size: '5',
+    size: '15',
     sort: 'accuracy',
   });
   if (x && y) {

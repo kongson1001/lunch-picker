@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { createRoom, roomExists, onRoomList, deleteRoom, hasOtherParticipants } from '../utils/room';
+import { createRoom, roomExists, getRoomPassword, onRoomList, deleteRoom, hasOtherParticipants } from '../utils/room';
 
 export default function Home() {
   const { user, login, logout, loading: authLoading, updateProfile } = useAuth();
@@ -10,9 +10,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [rooms, setRooms] = useState([]);
+  const [usePassword, setUsePassword] = useState(false);
+  const [password, setPassword] = useState('');
   const [editing, setEditing] = useState(false);
   const [editNickname, setEditNickname] = useState('');
   const [editImage, setEditImage] = useState(null);
+  // 비밀번호 모달 상태
+  const [passwordModal, setPasswordModal] = useState(null); // { roomId, password }
+  const [modalInput, setModalInput] = useState('');
+  const [modalError, setModalError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +37,10 @@ export default function Home() {
   };
 
   const handleCreate = async () => {
+    if (usePassword && !password.trim()) {
+      setError('비밀번호를 입력해주세요');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -44,7 +54,7 @@ export default function Home() {
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       };
-      const roomId = await createRoom(user.nickname, location, roomName.trim(), user.uid);
+      const roomId = await createRoom(user.nickname, location, roomName.trim(), user.uid, usePassword ? password.trim() : '');
       navigate(`/room/${roomId}`);
     } catch {
       setError('위치 정보를 가져올 수 없습니다. 위치 권한을 허용해주세요.');
@@ -64,11 +74,47 @@ export default function Home() {
       setError('존재하지 않는 방입니다');
       return;
     }
+    const roomPw = await getRoomPassword(code);
+    if (roomPw) {
+      setPasswordModal({ roomId: code, password: roomPw });
+      setModalInput('');
+      setModalError('');
+      return;
+    }
     navigate(`/room/${code}`);
   };
 
-  const handleRoomClick = (roomId) => {
-    navigate(`/room/${roomId}`);
+  const handleRoomClick = (room) => {
+    // 방장은 비밀번호 없이 바로 입장
+    if (room.createdByUid === user?.uid) {
+      sessionStorage.setItem(`room_auth_${room.id}`, 'true');
+      navigate(`/room/${room.id}`);
+      return;
+    }
+    // 이미 인증된 방
+    if (sessionStorage.getItem(`room_auth_${room.id}`)) {
+      navigate(`/room/${room.id}`);
+      return;
+    }
+    // 비밀번호방이면 모달
+    if (room.password) {
+      setPasswordModal({ roomId: room.id, password: room.password });
+      setModalInput('');
+      setModalError('');
+      return;
+    }
+    navigate(`/room/${room.id}`);
+  };
+
+  const handlePasswordSubmit = () => {
+    if (!passwordModal) return;
+    if (modalInput === passwordModal.password) {
+      sessionStorage.setItem(`room_auth_${passwordModal.roomId}`, 'true');
+      setPasswordModal(null);
+      navigate(`/room/${passwordModal.roomId}`);
+    } else {
+      setModalError('비밀번호가 틀렸습니다');
+    }
   };
 
   const handleDeleteRoom = async (e, room) => {
@@ -184,6 +230,27 @@ export default function Home() {
           onChange={(e) => setRoomName(e.target.value)}
           maxLength={20}
         />
+        <label className="password-toggle">
+          <input
+            type="checkbox"
+            checked={usePassword}
+            onChange={(e) => {
+              setUsePassword(e.target.checked);
+              if (!e.target.checked) setPassword('');
+            }}
+          />
+          비밀번호 설정
+        </label>
+        {usePassword && (
+          <input
+            type="password"
+            className="password-input"
+            placeholder="비밀번호 입력"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            maxLength={20}
+          />
+        )}
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -218,10 +285,11 @@ export default function Home() {
               <div
                 key={room.id}
                 className={`room-card ${isClosed ? 'closed' : ''}`}
-                onClick={() => handleRoomClick(room.id)}
+                onClick={() => handleRoomClick(room)}
               >
                 <div className="room-card-header">
                   <span className="room-card-code">
+                    {room.password && <span className="room-lock-icon">🔒</span>}
                     {room.roomName || room.id}
                   </span>
                   <div className="room-card-header-right">
@@ -245,6 +313,29 @@ export default function Home() {
               </div>
             );
           })}
+        </div>
+      )}
+      {passwordModal && (
+        <div className="modal-overlay" onClick={() => setPasswordModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>🔒 비밀번호 입력</h3>
+            <input
+              type="password"
+              placeholder="비밀번호를 입력하세요"
+              value={modalInput}
+              onChange={(e) => {
+                setModalInput(e.target.value);
+                setModalError('');
+              }}
+              onKeyDown={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+              autoFocus
+            />
+            {modalError && <p className="error">{modalError}</p>}
+            <div className="modal-buttons">
+              <button className="secondary-btn" onClick={() => setPasswordModal(null)}>취소</button>
+              <button className="primary-btn" onClick={handlePasswordSubmit}>입장</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

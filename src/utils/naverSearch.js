@@ -59,7 +59,7 @@ export function reverseGeocodeNaver(lat, lng) {
  * @param {string} query - 사용자 입력 검색어 (예: "파스타")
  * @param {number} lat - 위도
  * @param {number} lng - 경도
- * @returns {Promise<Array>} 검색 결과 (최대 5개)
+ * @returns {Promise<Array>} 검색 결과 (최대 15개)
  */
 export async function searchRestaurants(query, lat, lng) {
   const params = new URLSearchParams({ query });
@@ -84,7 +84,7 @@ export async function searchRestaurants(query, lat, lng) {
       return [];
     }
 
-    const results = data.documents.slice(0, 5).map((doc) => ({
+    const results = data.documents.map((doc) => ({
       name: doc.place_name,
       category: doc.category_name,
       address: doc.road_address_name || doc.address_name,

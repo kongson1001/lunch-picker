@@ -21,6 +21,9 @@ export default function Room() {
   const [room, setRoom] = useState(null);
   const [myVotes, setMyVotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [passwordChecked, setPasswordChecked] = useState(false);
+  const [gateInput, setGateInput] = useState('');
+  const [gateError, setGateError] = useState('');
   const [areaName, setAreaName] = useState('');
   const [searchMarkers, setSearchMarkers] = useState([]);
   const [currentLocation, setCurrentLocation] = useState(null);
@@ -44,12 +47,21 @@ export default function Room() {
       setRoom(data);
       setLoading(false);
 
+      // 비밀번호 체크: 방장이거나, 인증 캐시가 있거나, 비밀번호 없는 방이면 통과
+      if (!passwordChecked) {
+        const isHost = data.createdByUid === uid;
+        const hasAuth = sessionStorage.getItem(`room_auth_${roomId}`);
+        if (isHost || hasAuth || !data.password) {
+          setPasswordChecked(true);
+        }
+      }
+
       if (data.status === 'closed' && data.result) {
         navigate(`/room/${roomId}/result`);
       }
     });
     return () => unsubscribe();
-  }, [roomId, navigate]);
+  }, [roomId, navigate, uid, passwordChecked]);
 
   // uid 기준으로 내 투표 복원
   useEffect(() => {
@@ -196,6 +208,42 @@ export default function Room() {
   );
 
   if (loading) return <div className="loading">방 정보 로딩 중...</div>;
+
+  // 비밀번호 미인증 상태면 비밀번호 입력 화면 표시
+  if (!passwordChecked) {
+    const handleGateSubmit = () => {
+      if (gateInput === room.password) {
+        sessionStorage.setItem(`room_auth_${roomId}`, 'true');
+        setPasswordChecked(true);
+      } else {
+        setGateError('비밀번호가 틀렸습니다');
+      }
+    };
+    return (
+      <div className="password-gate">
+        <div className="password-gate-card">
+          <h2>🔒 비밀번호가 필요합니다</h2>
+          <p>{room.roomName || roomId}</p>
+          <input
+            type="password"
+            placeholder="비밀번호를 입력하세요"
+            value={gateInput}
+            onChange={(e) => {
+              setGateInput(e.target.value);
+              setGateError('');
+            }}
+            onKeyDown={(e) => e.key === 'Enter' && handleGateSubmit()}
+            autoFocus
+          />
+          {gateError && <p className="error">{gateError}</p>}
+          <div className="password-gate-buttons">
+            <button className="secondary-btn" onClick={() => navigate('/')}>돌아가기</button>
+            <button className="primary-btn" onClick={handleGateSubmit}>입장</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="room-container">

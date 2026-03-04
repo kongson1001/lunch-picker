@@ -451,6 +451,17 @@
   box-shadow: 0 2px 8px rgba(255, 123, 84, 0.15);
 }
 
+.menu-item.first-place {
+  border-color: #e85d26;
+  background: #fff5f0;
+  box-shadow: 0 3px 12px rgba(232, 93, 38, 0.2);
+}
+
+.crown {
+  font-size: 1.2rem;
+  margin-right: 4px;
+}
+
 .menu-info h3 {
   font-size: 1rem;
   font-weight: 600;
@@ -832,6 +843,8 @@
   flex-direction: column;
   gap: 8px;
   margin-bottom: 8px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .search-result-item {
@@ -1182,4 +1195,158 @@
 
 .profile-save-btn:hover {
   opacity: 0.85;
+}
+
+/* ===== Password Room ===== */
+.password-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+}
+
+.password-toggle input[type="checkbox"] {
+  accent-color: #e85d26;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.password-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #eee;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  margin-top: 8px;
+  transition: border-color 0.2s;
+}
+
+.password-input:focus {
+  border-color: #e85d26;
+}
+
+.room-lock-icon {
+  margin-right: 4px;
+  font-size: 0.85rem;
+}
+
+/* ===== Password Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 28px 24px;
+  width: 90%;
+  max-width: 360px;
+  text-align: center;
+}
+
+.modal-content h3 {
+  font-size: 1.1rem;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #eee;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+}
+
+.modal-content input:focus {
+  border-color: #e85d26;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.modal-buttons .secondary-btn,
+.modal-buttons .primary-btn {
+  flex: 1;
+  padding: 12px;
+  font-size: 0.95rem;
+}
+
+/* ===== Password Gate (Room 페이지) ===== */
+.password-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.password-gate-card {
+  background: white;
+  border: 2px solid #f0e0d6;
+  border-radius: 16px;
+  padding: 32px 28px;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+}
+
+.password-gate-card h2 {
+  font-size: 1.2rem;
+  color: #e85d26;
+  margin-bottom: 8px;
+}
+
+.password-gate-card > p {
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.password-gate-card input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #eee;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  margin-bottom: 8px;
+  transition: border-color 0.2s;
+}
+
+.password-gate-card input:focus {
+  border-color: #e85d26;
+}
+
+.password-gate-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.password-gate-buttons .secondary-btn,
+.password-gate-buttons .primary-btn {
+  flex: 1;
+  padding: 12px;
+  font-size: 0.95rem;
 }
