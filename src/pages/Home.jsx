@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { createRoom, roomExists, getRoomPassword, onRoomList, deleteRoom, hasOtherParticipants } from '../utils/room';
 
 export default function Home() {
-  const { user, login, logout, loading: authLoading, updateProfile } = useAuth();
+  const { user, login, loginAsAdmin, logout, loading: authLoading, updateProfile } = useAuth();
   const [roomName, setRoomName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -171,6 +171,9 @@ export default function Home() {
               <path fillRule="evenodd" clipRule="evenodd" d="M9 0.6C4.03 0.6 0 3.713 0 7.554c0 2.486 1.656 4.672 4.148 5.905l-1.054 3.9c-.093.345.302.616.596.408l4.67-3.096c.21.015.422.023.64.023 4.97 0 9-3.113 9-6.954C18 3.713 13.97 0.6 9 0.6" fill="#000000"/>
             </svg>
             카카오로 시작하기
+          </button>
+          <button className="admin-login-btn" onClick={loginAsAdmin} style={{ marginTop: '10px', backgroundColor: '#f0f0f0', border: '1px solid #ccc', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', width: '100%' }}>
+            🔧 관리자 테스트 로그인
           </button>
         </div>
       </div>

@@ -74,6 +74,17 @@ export function AuthProvider({ children }) {
     window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${restApiKey}&redirect_uri=${redirectUri}&response_type=code`;
   };
 
+  const loginAsAdmin = () => {
+    const adminUser = {
+      uid: 'admin_test_id',
+      nickname: '관리자(테스트)',
+      profileImage: null,
+      isAdmin: true,
+    };
+    setUser(adminUser);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(adminUser));
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
@@ -81,13 +92,13 @@ export function AuthProvider({ children }) {
 
   const updateProfile = (nickname, profileImage) => {
     if (!user) return;
-    const updated = { ...user, nickname, profileImage };
+    const updated = { ...user, nickname, profileImage, isAdmin: user.isAdmin };
     setUser(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, updateProfile }}>
+    <AuthContext.Provider value={{ user, login, loginAsAdmin, logout, loading, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
