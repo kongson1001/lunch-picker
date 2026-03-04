@@ -4,7 +4,7 @@
 - **앱 이름**: 오늘 뭐 먹지? - 점심 메뉴 투표
 - **기술 스택**: React 19 + Vite 7 + Firebase Realtime DB + Naver Maps API
 - **경로**: `C:\Users\jung\lunch-picker`
-
+dd
 ---
 
 ## 개발 서버 실행/중지
