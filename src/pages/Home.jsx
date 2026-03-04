@@ -19,6 +19,10 @@ export default function Home() {
   const [passwordModal, setPasswordModal] = useState(null); // { roomId, password }
   const [modalInput, setModalInput] = useState('');
   const [modalError, setModalError] = useState('');
+  // 관리자 로그인 모달 상태
+  const [adminLoginModal, setAdminLoginModal] = useState(false);
+  const [adminId, setAdminId] = useState('');
+  const [adminPw, setAdminPw] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -117,6 +121,17 @@ export default function Home() {
     }
   };
 
+  const handleAdminLoginSubmit = () => {
+    if (adminId === 'kyoungmin' && adminPw === '15901590') {
+      loginAsAdmin();
+      setAdminLoginModal(false);
+      setAdminId('');
+      setAdminPw('');
+    } else {
+      alert('관리자 계정 정보가 일치하지 않습니다.');
+    }
+  };
+
   const handleDeleteRoom = async (e, room) => {
     e.stopPropagation();
     if (hasOtherParticipants(room, user.uid)) {
@@ -172,10 +187,39 @@ export default function Home() {
             </svg>
             카카오로 시작하기
           </button>
-          <button className="admin-login-btn" onClick={loginAsAdmin} style={{ marginTop: '10px', backgroundColor: '#f0f0f0', border: '1px solid #ccc', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', width: '100%' }}>
+          <button className="admin-login-btn" onClick={() => setAdminLoginModal(true)} style={{ marginTop: '10px', backgroundColor: '#f0f0f0', border: '1px solid #ccc', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', width: '100%' }}>
             🔧 관리자 테스트 로그인
           </button>
         </div>
+
+        {adminLoginModal && (
+          <div className="modal-overlay" onClick={() => setAdminLoginModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h3>🔧 관리자 로그인</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="관리자 ID"
+                  value={adminId}
+                  onChange={(e) => setAdminId(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdminLoginSubmit()}
+                  autoFocus
+                />
+                <input
+                  type="password"
+                  placeholder="비밀번호"
+                  value={adminPw}
+                  onChange={(e) => setAdminPw(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdminLoginSubmit()}
+                />
+              </div>
+              <div className="modal-buttons" style={{ marginTop: '20px' }}>
+                <button className="secondary-btn" onClick={() => setAdminLoginModal(false)}>취소</button>
+                <button className="primary-btn" onClick={handleAdminLoginSubmit}>로그인</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
