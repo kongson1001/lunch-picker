@@ -29,6 +29,8 @@ export default function Chat({ roomId, user }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const textareaRef = useRef(null);
+
   const handleSend = async () => {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
@@ -36,13 +38,34 @@ export default function Chat({ roomId, user }) {
     try {
       await sendMessage(roomId, user, trimmed);
       setText('');
+      // 전송 후 높이 초기화 (필요시)
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+      }
     } finally {
       setSending(false);
     }
   };
 
+  const handleNewline = () => {
+    if (sending) return;
+    setText(prev => prev + '\n');
+    // 버튼 클릭 후 입력창에 다시 포커스
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        // 스크롤을 맨 아래로
+        textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+      }
+    }, 0);
+  };
+
   const handleKeyDown = (e) => {
+    // Shift 키 없이 Enter만 누른 경우 전송
     if (e.key === 'Enter' && !e.shiftKey) {
+      // 한글 입력 시 중복 이벤트 방지
+      if (e.nativeEvent.isComposing) return;
+      
       e.preventDefault();
       handleSend();
     }
@@ -89,6 +112,7 @@ export default function Chat({ roomId, user }) {
       </div>
       <div className="chat-input-row">
         <textarea
+          ref={textareaRef}
           className="chat-input chat-textarea"
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -98,13 +122,23 @@ export default function Chat({ roomId, user }) {
           maxLength={300}
           rows="1"
         />
-        <button
-          className="chat-send-btn"
-          onClick={handleSend}
-          disabled={sending || !text.trim()}
-        >
-          전송
-        </button>
+        <div className="chat-btn-group">
+          <button
+            className="chat-newline-btn"
+            onClick={handleNewline}
+            disabled={sending}
+            title="줄바꿈"
+          >
+            ↵
+          </button>
+          <button
+            className="chat-send-btn"
+            onClick={handleSend}
+            disabled={sending || !text.trim()}
+          >
+            전송
+          </button>
+        </div>
       </div>
     </section>
   );
