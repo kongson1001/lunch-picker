@@ -67,6 +67,22 @@ export async function deleteMessage(roomId, messageId) {
   await remove(ref(db, `rooms/${roomId}/messages/${messageId}`));
 }
 
+export async function toggleReaction(roomId, messageId, emoji, user) {
+  const reactionRef = ref(db, `rooms/${roomId}/messages/${messageId}/reactions/${emoji}/${user.uid}`);
+  const snapshot = await get(reactionRef);
+  
+  if (snapshot.exists()) {
+    // 이미 해당 이모지를 눌렀다면 제거
+    await remove(reactionRef);
+  } else {
+    // 새로 누르는 것이라면 닉네임과 함께 저장
+    await set(reactionRef, {
+      nickname: user.nickname,
+      timestamp: Date.now()
+    });
+  }
+}
+
 export function onRoomList(callback) {
   const roomsRef = ref(db, 'rooms');
   return onValue(roomsRef, (snapshot) => {
