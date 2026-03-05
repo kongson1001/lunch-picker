@@ -11,13 +11,16 @@ export const addFavorite = async (userId, restaurant) => {
   // ID가 없으면 정제된 이름을 ID로 사용
   const favId = restaurant.id || cleanName;
   
+  // Realtime Database는 undefined를 허용하지 않으므로 데이터 정제
+  const cleanedRestaurant = JSON.parse(JSON.stringify(restaurant));
+  
   // Realtime Database 경로: users/{userId}/favorites/{favId}
   const favRef = ref(db, `users/${userId}/favorites/${favId}`);
   
   await set(favRef, {
-    ...restaurant,
+    ...cleanedRestaurant,
     name: cleanName,
-    addedAt: Date.now() // Realtime Database 방식의 타임스탬프
+    addedAt: Date.now()
   });
 };
 
