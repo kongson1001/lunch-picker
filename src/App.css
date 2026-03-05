@@ -966,6 +966,48 @@
   gap: 12px;
   margin-bottom: 16px;
   padding-right: 4px;
+  position: relative;
+}
+
+/* 새 메시지 알림 토스트 */
+.chat-new-msg-toast {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(232, 93, 38, 0.95);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 85%;
+  white-space: nowrap;
+  animation: toastFadeIn 0.3s ease;
+}
+
+.toast-nickname {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.toast-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toast-arrow {
+  font-weight: 700;
+}
+
+@keyframes toastFadeIn {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 .chat-empty {

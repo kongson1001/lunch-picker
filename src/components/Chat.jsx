@@ -8,6 +8,11 @@ export default function Chat({ roomId, user }) {
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
 
+  const [showToast, setShowToast] = useState(false);
+  const [newMsgInfo, setNewMsgInfo] = useState(null);
+  const chatMessagesRef = useRef(null);
+  const isInitialMount = useRef(true);
+
   useEffect(() => {
     const messagesRef = ref(db, `rooms/${roomId}/messages`);
     const unsubscribe = onValue(messagesRef, (snapshot) => {
@@ -19,15 +24,53 @@ export default function Chat({ roomId, user }) {
       const list = Object.entries(data)
         .map(([id, msg]) => ({ id, ...msg }))
         .sort((a, b) => a.createdAt - b.createdAt);
+      
+      // 새 메시지 감지 로직
+      if (!isInitialMount.current && list.length > messages.length) {
+        const lastMsg = list[list.length - 1];
+        // 내가 보낸 메시지가 아닐 때만 알림 처리
+        if (lastMsg.uid !== user?.uid) {
+          handleNewMessageFromOthers(lastMsg);
+        } else {
+          // 내가 보낸 메시지는 즉시 스크롤
+          scrollToBottom();
+        }
+      }
+      
       setMessages(list);
+      isInitialMount.current = false;
     });
     return () => unsubscribe();
-  }, [roomId]);
+  }, [roomId, messages.length, user?.uid]);
 
-  // 새 메시지 도착 시 자동 스크롤
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const handleNewMessageFromOthers = (msg) => {
+    const container = chatMessagesRef.current;
+    if (!container) return;
+
+    // 사용자가 현재 맨 아래에 있는지 확인 (여유값 50px)
+    const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+
+    if (isAtBottom) {
+      scrollToBottom();
+    } else {
+      // 맨 아래가 아니면 알림 표시
+      setNewMsgInfo(msg);
+      setShowToast(true);
+      // 3초 후 자동 소멸
+      setTimeout(() => setShowToast(false), 3000);
+    }
+  };
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
+  const handleToastClick = () => {
+    scrollToBottom();
+    setShowToast(false);
+  };
 
   const textareaRef = useRef(null);
 
@@ -38,12 +81,17 @@ export default function Chat({ roomId, user }) {
     try {
       await sendMessage(roomId, user, trimmed);
       setText('');
-      // 전송 후 높이 초기화 (필요시)
+      // 전송 후 높이 초기화 및 포커스 유지
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
+        textareaRef.current.focus();
       }
     } finally {
       setSending(false);
+      // 비동기 처리 완료 후에도 한 번 더 확실히 포커스
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 0);
     }
   };
 
@@ -88,7 +136,7 @@ export default function Chat({ roomId, user }) {
   return (
     <section className="chat-section">
       <h2 className="section-title">채팅</h2>
-      <div className="chat-messages">
+      <div className="chat-messages" ref={chatMessagesRef}>
         {messages.length === 0 && (
           <p className="chat-empty">첫 메시지를 보내보세요!</p>
         )}
@@ -119,6 +167,15 @@ export default function Chat({ roomId, user }) {
           );
         })}
         <div ref={bottomRef} />
+        
+        {/* 새 메시지 알림 토스트 */}
+        {showToast && (
+          <div className="chat-new-msg-toast" onClick={handleToastClick}>
+            <span className="toast-nickname">{newMsgInfo?.nickname}: </span>
+            <span className="toast-text">{newMsgInfo?.text}</span>
+            <span className="toast-arrow">↓</span>
+          </div>
+        )}
       </div>
       <div className="chat-input-row">
         <textarea
