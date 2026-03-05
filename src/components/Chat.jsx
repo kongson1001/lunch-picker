@@ -48,15 +48,25 @@ export default function Chat({ roomId, user }) {
   };
 
   const handleNewline = () => {
-    if (sending) return;
-    setText(prev => prev + '\n');
-    // 버튼 클릭 후 입력창에 다시 포커스
+    if (sending || !textareaRef.current) return;
+
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+
+    // 현재 커서 위치에 줄바꿈(\n) 삽입
+    const newText = text.substring(0, start) + '\n' + text.substring(end);
+    setText(newText);
+
+    // 상태 업데이트 후 커서 위치 조정
     setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        // 스크롤을 맨 아래로
-        textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
-      }
+      textarea.focus();
+      // 삽입된 \n 바로 뒤로 커서 이동
+      textarea.selectionStart = textarea.selectionEnd = start + 1;
+      
+      // 스크롤 위치 조정 (필요한 경우)
+      const lineHeight = parseInt(getComputedStyle(textarea).lineHeight);
+      textarea.scrollTop = textarea.scrollHeight;
     }, 0);
   };
 
