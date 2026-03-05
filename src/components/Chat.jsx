@@ -88,15 +88,15 @@ export default function Chat({ roomId, user }) {
         <div ref={bottomRef} />
       </div>
       <div className="chat-input-row">
-        <input
-          type="text"
-          className="chat-input"
+        <textarea
+          className="chat-input chat-textarea"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="메시지를 입력하세요"
           disabled={sending}
           maxLength={300}
+          rows="1"
         />
         <button
           className="chat-send-btn"
