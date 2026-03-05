@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { db, ref, get, set, update as dbUpdate } from '../firebase';
 
 const AuthContext = createContext(null);
 
@@ -7,6 +8,20 @@ const STORAGE_KEY = 'kakao_user';
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Database에서 사용자 정보 가져오기
+  const fetchUserData = async (uid) => {
+    try {
+      const userRef = ref(db, `users/${uid}/profile`);
+      const snapshot = await get(userRef);
+      if (snapshot.exists()) {
+        return snapshot.val();
+      }
+    } catch (err) {
+      console.error('사용자 정보 불러오기 실패:', err);
+    }
+    return null;
+  };
 
   useEffect(() => {
     // 카카오 SDK 초기화
@@ -25,15 +40,28 @@ export function AuthProvider({ children }) {
     }
 
     // localStorage에서 캐시된 유저 정보 복원
-    const cached = localStorage.getItem(STORAGE_KEY);
-    if (cached) {
-      try {
-        setUser(JSON.parse(cached));
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
+    const initAuth = async () => {
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (cached) {
+        try {
+          const cachedUser = JSON.parse(cached);
+          // DB에서 최신 정보 확인
+          const dbData = await fetchUserData(cachedUser.uid);
+          if (dbData) {
+            const mergedUser = { ...cachedUser, ...dbData };
+            setUser(mergedUser);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
+          } else {
+            setUser(cachedUser);
+          }
+        } catch {
+          localStorage.removeItem(STORAGE_KEY);
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const handleAuthCode = async (code) => {
@@ -53,12 +81,25 @@ export function AuthProvider({ children }) {
         headers: { Authorization: `Bearer ${data.access_token}` },
       });
       const userData = await userRes.json();
+      const uid = `kakao_${userData.id}`;
 
+      // DB에서 기존 정보 확인
+      const dbData = await fetchUserData(uid);
+      
       const kakaoUser = {
-        uid: `kakao_${userData.id}`,
-        nickname: userData.kakao_account?.profile?.nickname || `사용자${userData.id}`,
-        profileImage: null,
+        uid,
+        nickname: dbData?.nickname || userData.kakao_account?.profile?.nickname || `사용자${userData.id}`,
+        profileImage: dbData?.profileImage || null,
       };
+
+      // 처음 로그인하는 경우 DB에 기본 정보 저장
+      if (!dbData) {
+        await set(ref(db, `users/${uid}/profile`), {
+          nickname: kakaoUser.nickname,
+          profileImage: kakaoUser.profileImage,
+          updatedAt: Date.now()
+        });
+      }
 
       setUser(kakaoUser);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(kakaoUser));
@@ -74,10 +115,12 @@ export function AuthProvider({ children }) {
     window.location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${restApiKey}&redirect_uri=${redirectUri}&response_type=code`;
   };
 
-  const loginAsAdmin = (adminData) => {
+  const loginAsAdmin = async (adminData) => {
+    const dbData = await fetchUserData(adminData.uid);
     const adminUser = {
       ...adminData,
-      profileImage: null,
+      nickname: dbData?.nickname || adminData.nickname,
+      profileImage: dbData?.profileImage || null,
     };
     setUser(adminUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(adminUser));
@@ -88,11 +131,24 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY);
   };
 
-  const updateProfile = (nickname, profileImage) => {
+  const updateProfile = async (nickname, profileImage) => {
     if (!user) return;
-    const updated = { ...user, nickname, profileImage, isAdmin: user.isAdmin };
-    setUser(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    
+    try {
+      // DB 업데이트
+      await dbUpdate(ref(db, `users/${user.uid}/profile`), {
+        nickname,
+        profileImage,
+        updatedAt: Date.now()
+      });
+
+      const updated = { ...user, nickname, profileImage, isAdmin: user.isAdmin };
+      setUser(updated);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch (err) {
+      console.error('프로필 업데이트 실패:', err);
+      throw err;
+    }
   };
 
   return (

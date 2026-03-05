@@ -65,26 +65,33 @@ KAKAO_REST_API_KEY=            # 카카오 REST API 키 (검색용)
 ## Firebase 데이터 구조
 ```
 rooms/{roomId}
-├── createdAt: number          # 생성 시각 (Date.now())
-├── createdBy: string          # 방장 닉네임 (표시용)
-├── createdByUid: string       # 방장 카카오 UID (권한 판별용)
-├── roomName: string           # 방 이름
-├── status: "voting" | "closed"
-├── location: { lat, lng }     # 방 생성 시 위치
-├── menus/
-│   └── {pushId}: { name, address?, source, addedBy }
-├── votes/
-│   └── {kakao_uid}: { nickname, menuIds: [] }
-└── result: { winnerId, winnerName, topMenus, counts, isTie }
+├── ... (기존 구조)
+users/{uid}
+├── profile/                   # 사용자 프로필 정보 (DB 저장 및 유지)
+│   ├── nickname: string
+│   ├── profileImage: string | null
+│   └── updatedAt: number
+└── favorites/{favId}          # 즐겨찾기 식당 목록 (Realtime DB 사용)
+    ├── id: string             # 식당 ID 또는 정제된 이름
+    ├── name: string           # HTML 태그가 제거된 정제된 이름
+    ├── addedAt: number        # 추가된 시각
+    └── ... (기타 식당 정보: address, category 등)
 ```
 
 ## 인증 흐름 (카카오 로그인)
 1. `index.html`에서 카카오 SDK CDN 로드
 2. `AuthContext`에서 `Kakao.init(VITE_KAKAO_JS_KEY)` 호출
 3. 로그인: `Kakao.Auth.login()` → `/v2/user/me` → `{ uid: "kakao_{id}", nickname, profileImage }`
-4. `localStorage('kakao_user')`에 캐시 → 새로고침 시 복원
-5. 투표 키: `votes/{uid}` (중복 투표 차단)
-6. 방장 판별: `room.createdByUid === user.uid` (영구 유지)
+4. **데이터 동기화**: DB의 `users/{uid}/profile` 정보를 우선 조회하여 기존 프로필(이미지, 닉네임) 복원
+5. `localStorage('kakao_user')`에 캐시 → 새로고침 시 DB와 동기화하여 최신 상태 유지
+6. 프로필 수정 시: `updateProfile`을 통해 DB와 로컬 상태를 동시에 업데이트
+7. 투표 키: `votes/{uid}` (중복 투표 차단)
+8. 방장 판별: `room.createdByUid === user.uid` (영구 유지)
+
+## 최근 변경 사항 (2026-03-05)
+- **즐겨찾기 시스템 전환**: Firestore에서 Realtime Database로 이전 (`src/utils/favorites.js`).
+  - `undefined` 값을 포함한 객체 저장 시 발생하는 에러 방지를 위해 데이터 정제 로직 적용.
+- **프로필 영구 저장**: 카카오 로그인 시 제공되는 임시 프로필 대신, 사용자가 수정한 닉네임과 프로필 이미지를 Realtime Database에 저장하고 로그인 시마다 불러오도록 개선 (`AuthContext.jsx`).
 
 ## 주요 패턴
 
