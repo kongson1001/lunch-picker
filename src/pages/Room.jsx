@@ -328,6 +328,36 @@ export default function Room() {
           )}
         </section>
 
+        <section className="room-section">
+          <h2 className="section-title">음식점 찾기</h2>
+          {currentLocation && (
+            <>
+              <NaverMap
+                lat={currentLocation.lat}
+                lng={currentLocation.lng}
+                markers={searchMarkers}
+                onReady={handleMapReady}
+              />
+              <button
+                className="location-update-btn"
+                onClick={handleUpdateLocation}
+                disabled={locating}
+              >
+                {locating ? '위치 가져오는 중...' : '내 현재 위치로 갱신'}
+              </button>
+            </>
+          )}
+          {room.status === 'voting' && (
+            <RestaurantSearch
+              lat={currentLocation?.lat || room.location?.lat}
+              lng={currentLocation?.lng || room.location?.lng}
+              areaName={areaName}
+              onAdd={handleAddRestaurant}
+              onResults={handleSearchResults}
+              addedNames={addedNames}
+            />
+          )}
+        </section>
       </div>
 
       <section className="room-section participation-section">
