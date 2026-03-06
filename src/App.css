@@ -1578,6 +1578,22 @@
 }
 
 /* ===== Participation ===== */
+.participation-section {
+  margin-top: 24px;
+  background: #fffaf7;
+  border: 2px solid #f0e0d6;
+}
+
+.participation-flex {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.participation-controls {
+  flex: 1;
+}
+
 .participation-selector {
   display: flex;
   gap: 12px;
@@ -1615,8 +1631,25 @@
 }
 
 .decline-reason-input {
+  display: flex;
+  gap: 8px;
   margin-bottom: 20px;
   animation: slideDown 0.2s ease-out;
+}
+
+.reason-save-btn {
+  padding: 0 20px;
+  background: #f44336;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.reason-save-btn:hover {
+  background: #d32f2f;
 }
 
 @keyframes slideDown {
@@ -1625,7 +1658,7 @@
 }
 
 .decline-reason-input input {
-  width: 100%;
+  flex: 1;
   padding: 12px 14px;
   border: 2px solid #eee;
   border-radius: 10px;
@@ -1640,29 +1673,30 @@
 }
 
 .participant-status-list {
-  background: #f8f9fa;
+  flex: 1.5;
+  background: white;
+  border: 1px solid #f0e0d6;
   border-radius: 12px;
-  padding: 20px;
-  margin-top: 10px;
+  padding: 16px;
 }
 
 .participant-status-list h3 {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #333;
-  margin-bottom: 15px;
-  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #eee;
   padding-bottom: 8px;
 }
 
 .status-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
 }
 
 .status-column h4 {
-  font-size: 0.9rem;
-  margin-bottom: 10px;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
   color: #2e7d32;
 }
 
@@ -1677,22 +1711,23 @@
 }
 
 .status-column li {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #555;
-  margin-bottom: 6px;
-  padding: 4px 0;
+  margin-bottom: 4px;
 }
 
 .status-column .reason {
   color: #888;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-style: italic;
 }
 
-@media (max-width: 480px) {
-  .status-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
+@media (max-width: 768px) {
+  .participation-flex {
+    flex-direction: column;
+  }
+  .participant-status-list {
+    width: 100%;
   }
 }
 

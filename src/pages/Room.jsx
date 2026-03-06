@@ -328,34 +328,44 @@ export default function Room() {
           )}
         </section>
 
-        <section className="room-section">
-          <h2 className="section-title">점심 참여 여부</h2>
-          <div className="participation-selector">
-            <button 
-              className={`participation-btn ${participation === 'participate' ? 'active' : ''}`}
-              onClick={() => handleParticipationChange('participate')}
-            >
-              🙋‍♂️ 참여
-            </button>
-            <button 
-              className={`participation-btn decline ${participation === 'decline' ? 'active' : ''}`}
-              onClick={() => handleParticipationChange('decline', participationReason)}
-            >
-              🙅‍♀️ 미참여
-            </button>
-          </div>
-          
-          {participation === 'decline' && (
-            <div className="decline-reason-input">
-              <input 
-                type="text" 
-                placeholder="미참여 사유를 입력해주세요 (예: 외부 미팅)"
-                value={participationReason}
-                onChange={(e) => setParticipationReason(e.target.value)}
-                onBlur={(e) => handleParticipationChange('decline', e.target.value)}
-              />
+      </div>
+
+      <section className="room-section participation-section">
+        <h2 className="section-title">점심 참여 여부</h2>
+        <div className="participation-flex">
+          <div className="participation-controls">
+            <div className="participation-selector">
+              <button 
+                className={`participation-btn ${participation === 'participate' ? 'active' : ''}`}
+                onClick={() => handleParticipationChange('participate')}
+              >
+                🙋‍♂️ 참여
+              </button>
+              <button 
+                className={`participation-btn decline ${participation === 'decline' ? 'active' : ''}`}
+                onClick={() => handleParticipationChange('decline', participationReason)}
+              >
+                🙅‍♀️ 미참여
+              </button>
             </div>
-          )}
+            
+            {participation === 'decline' && (
+              <div className="decline-reason-input">
+                <input 
+                  type="text" 
+                  placeholder="미참여 사유 입력"
+                  value={participationReason}
+                  onChange={(e) => setParticipationReason(e.target.value)}
+                />
+                <button 
+                  className="reason-save-btn"
+                  onClick={() => handleParticipationChange('decline', participationReason)}
+                >
+                  저장
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="participant-status-list">
             <h3>참여자 현황</h3>
@@ -383,39 +393,8 @@ export default function Room() {
               </div>
             </div>
           </div>
-        </section>
-
-        <section className="room-section">
-          <h2 className="section-title">검색</h2>
-          {currentLocation && (
-            <>
-              <NaverMap
-                lat={currentLocation.lat}
-                lng={currentLocation.lng}
-                markers={searchMarkers}
-                onReady={handleMapReady}
-              />
-              <button
-                className="location-update-btn"
-                onClick={handleUpdateLocation}
-                disabled={locating}
-              >
-                {locating ? '위치 가져오는 중...' : '내 현재 위치로 갱신'}
-              </button>
-            </>
-          )}
-          {room.status === 'voting' && (
-            <RestaurantSearch
-              lat={currentLocation?.lat || room.location?.lat}
-              lng={currentLocation?.lng || room.location?.lng}
-              areaName={areaName}
-              onAdd={handleAddRestaurant}
-              onResults={handleSearchResults}
-              addedNames={addedNames}
-            />
-          )}
-        </section>
-      </div>
+        </div>
+      </section>
 
       <Chat roomId={roomId} user={user} />
     </div>
