@@ -146,14 +146,24 @@ export default function Room() {
 
   const handleParticipationChange = async (status, reason = '') => {
     const pRef = ref(db, `rooms/${roomId}/participation/${uid}`);
+    
+    // 토글 로직: 이미 선택된 상태를 다시 누르면 취소(pending)
+    if (status === participation && status !== 'pending') {
+      await remove(pRef);
+      setParticipation('pending');
+      setParticipationReason('');
+      return;
+    }
+
+    const finalReason = status === 'decline' ? reason : '';
     await set(pRef, {
       nickname,
       status,
-      reason,
+      reason: finalReason,
       updatedAt: Date.now()
     });
     setParticipation(status);
-    if (reason) setParticipationReason(reason);
+    setParticipationReason(finalReason);
   };
 
   const handleDeleteMenu = async (menuId) => {
