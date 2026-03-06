@@ -1,4 +1,4 @@
-import { db, ref, set, push, get, onValue, remove } from '../firebase';
+import { db, ref, set, push, get, onValue, remove, update } from '../firebase';
 
 export function generateRoomId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
