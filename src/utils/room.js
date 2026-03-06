@@ -82,6 +82,14 @@ export async function deleteMessage(roomId, messageId) {
   await remove(ref(db, `rooms/${roomId}/messages/${messageId}`));
 }
 
+export async function editMessage(roomId, messageId, newText) {
+  const msgRef = ref(db, `rooms/${roomId}/messages/${messageId}`);
+  await update(msgRef, { 
+    text: newText,
+    updatedAt: Date.now()
+  });
+}
+
 export async function toggleReaction(roomId, messageId, emoji, user) {
   const reactionRef = ref(db, `rooms/${roomId}/messages/${messageId}/reactions/${emoji}/${user.uid}`);
   const snapshot = await get(reactionRef);

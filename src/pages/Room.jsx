@@ -144,11 +144,11 @@ export default function Room() {
     });
   };
 
-  const handleParticipationChange = async (status, reason = '') => {
+  const handleParticipationChange = async (status, reason = '', isSaveOnly = false) => {
     const pRef = ref(db, `rooms/${roomId}/participation/${uid}`);
     
-    // 토글 로직: 이미 선택된 상태를 다시 누르면 취소(pending)
-    if (status === participation && status !== 'pending') {
+    // 토글 로직: 이미 선택된 상태를 다시 누르면 취소(pending). 단, 저장 버튼 클릭시는 제외.
+    if (!isSaveOnly && status === participation && status !== 'pending') {
       await remove(pRef);
       setParticipation('pending');
       setParticipationReason('');
@@ -359,7 +359,7 @@ export default function Room() {
                 />
                 <button 
                   className="reason-save-btn"
-                  onClick={() => handleParticipationChange('decline', participationReason)}
+                  onClick={() => handleParticipationChange('decline', participationReason, true)}
                 >
                   저장
                 </button>

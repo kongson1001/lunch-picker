@@ -1175,20 +1175,106 @@
   border-bottom-right-radius: 4px;
 }
 
-/* 삭제 버튼 */
-.chat-delete-btn {
-  font-size: 0.7rem;
-  color: #ccc;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px 4px;
-  flex-shrink: 0;
-  transition: color 0.15s;
+/* ===== Chat Actions & Edit ===== */
+.chat-actions {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
 
-.chat-delete-btn:hover {
-  color: #e53e3e;
+.chat-message:hover .chat-actions {
+  opacity: 1;
+}
+
+.chat-action-btn {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background: white;
+  color: #888;
+}
+
+.chat-action-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.chat-action-btn.delete:hover {
+  border-color: #f44336;
+  color: #f44336;
+}
+
+.chat-action-btn.edit:hover {
+  border-color: #e85d26;
+  color: #e85d26;
+}
+
+.chat-edit-box {
+  width: 100%;
+  max-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-edit-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid #e85d26;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  outline: none;
+}
+
+.chat-edit-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.chat-edit-buttons button {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background: white;
+}
+
+.chat-edit-buttons button:first-child {
+  background: #e85d26;
+  color: white;
+  border: none;
+}
+
+.chat-edited-mark {
+  font-size: 0.7rem;
+  color: rgba(0,0,0,0.3);
+  margin-left: 6px;
+}
+
+.chat-message.mine .chat-edited-mark {
+  color: rgba(255,255,255,0.6);
+}
+
+/* 기존 삭제 버튼 제거 (액션 그룹으로 대체됨) */
+.chat-delete-btn {
+  display: none;
+}
+
+@media (max-width: 480px) {
+  .chat-actions {
+    opacity: 1; /* 모바일은 호버가 없으므로 항상 노출 */
+  }
 }
 
 /* 입력창 */

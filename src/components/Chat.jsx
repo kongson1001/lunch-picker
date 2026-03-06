@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, ref, onValue } from '../firebase';
-import { sendMessage, deleteMessage, toggleReaction } from '../utils/room';
+import { sendMessage, deleteMessage, editMessage, toggleReaction } from '../utils/room';
 
 export default function Chat({ roomId, user }) {
   const [messages, setMessages] = useState([]);
@@ -8,6 +8,8 @@ export default function Chat({ roomId, user }) {
   const [sending, setSending] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [newMsgInfo, setNewMsgInfo] = useState(null);
+  const [editId, setEditId] = useState(null);
+  const [editInput, setEditInput] = useState('');
   
   const bottomRef = useRef(null);
   const chatMessagesRef = useRef(null);
@@ -91,6 +93,28 @@ export default function Chat({ roomId, user }) {
     }
   };
 
+  const handleEditStart = (msg) => {
+    setEditId(msg.id);
+    setEditInput(msg.text);
+  };
+
+  const handleEditCancel = () => {
+    setEditId(null);
+    setEditInput('');
+  };
+
+  const handleEditSave = async (messageId) => {
+    const trimmed = editInput.trim();
+    if (!trimmed) return;
+    try {
+      await editMessage(roomId, messageId, trimmed);
+      setEditId(null);
+      setEditInput('');
+    } catch (err) {
+      console.error('메시지 수정 실패:', err);
+    }
+  };
+
   const handleReaction = async (messageId, emoji) => {
     if (!user) return;
     try {
@@ -131,6 +155,8 @@ export default function Chat({ roomId, user }) {
           )}
           {messages.map((msg) => {
             const isMine = msg.uid === user?.uid;
+            const isEditing = editId === msg.id;
+
             return (
               <div key={msg.id} className={`chat-message ${isMine ? 'mine' : 'others'}`}>
                 {!isMine && (
@@ -144,12 +170,33 @@ export default function Chat({ roomId, user }) {
                 <div className="chat-bubble-wrap">
                   {!isMine && <span className="chat-nickname">{msg.nickname}</span>}
                   <div className="chat-bubble-row">
-                    {(isMine || user?.isAdmin) && (
-                      <button className="chat-delete-btn" onClick={() => deleteMessage(roomId, msg.id)}>
-                        삭제
-                      </button>
+                    {(isMine || user?.isAdmin) && !isEditing && (
+                      <div className="chat-actions">
+                        {isMine && (
+                          <button className="chat-action-btn edit" onClick={() => handleEditStart(msg)}>수정</button>
+                        )}
+                        <button className="chat-action-btn delete" onClick={() => deleteMessage(roomId, msg.id)}>삭제</button>
+                      </div>
                     )}
-                    <div className="chat-bubble">{msg.text}</div>
+                    {isEditing ? (
+                      <div className="chat-edit-box">
+                        <textarea 
+                          value={editInput}
+                          onChange={(e) => setEditInput(e.target.value)}
+                          className="chat-edit-input"
+                          autoFocus
+                        />
+                        <div className="chat-edit-buttons">
+                          <button onClick={() => handleEditSave(msg.id)}>저장</button>
+                          <button onClick={handleEditCancel}>취소</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="chat-bubble">
+                        {msg.text}
+                        {msg.updatedAt && <span className="chat-edited-mark">(수정됨)</span>}
+                      </div>
+                    )}
                   </div>
                   
                   {/* 반응 표시 및 추가 레이어 */}
