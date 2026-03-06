@@ -142,13 +142,22 @@ export default function Room() {
 
   // 투표 키: uid 기준 (1인 1투표)
   const handleVote = async (menuId) => {
-    const newVotes = myVotes.includes(menuId)
-      ? myVotes.filter((id) => id !== menuId)
-      : [...myVotes, menuId];
-    setMyVotes(newVotes);
-
-    const voteRef = ref(db, `rooms/${roomId}/votes/${uid}`);
-    await set(voteRef, { nickname, menuIds: newVotes });
+    setMyVotes((prev) => {
+      // Set을 사용하여 중복을 원천적으로 방지하고 toggle 처리
+      const voteSet = new Set(prev);
+      if (voteSet.has(menuId)) {
+        voteSet.delete(menuId);
+      } else {
+        voteSet.add(menuId);
+      }
+      const updatedVotes = Array.from(voteSet);
+      
+      // DB에도 즉시 업데이트
+      const voteRef = ref(db, `rooms/${roomId}/votes/${uid}`);
+      set(voteRef, { nickname, menuIds: updatedVotes });
+      
+      return updatedVotes;
+    });
   };
 
   const handleClose = async () => {
