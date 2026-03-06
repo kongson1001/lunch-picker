@@ -28,6 +28,8 @@ export default function Room() {
   const [searchMarkers, setSearchMarkers] = useState([]);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [participation, setParticipation] = useState('pending'); // 'participate', 'decline', 'pending'
+  const [participationReason, setParticipationReason] = useState('');
 
   // 로그인 안 된 상태면 홈으로
   useEffect(() => {
@@ -46,6 +48,12 @@ export default function Room() {
       }
       setRoom(data);
       setLoading(false);
+
+      // 내 참여 정보 로드
+      if (data.participation?.[uid]) {
+        setParticipation(data.participation[uid].status || 'pending');
+        setParticipationReason(data.participation[uid].reason || '');
+      }
 
       // 비밀번호 체크: 방장이거나, 인증 캐시가 있거나, 비밀번호 없는 방이면 통과
       if (!passwordChecked) {
@@ -72,8 +80,8 @@ export default function Room() {
     }
   }, [room, uid]);
 
-  // 방장 판별: createdByUid 기준
-  const computedIsHost = room?.createdByUid === uid;
+  // 방장 판별: createdByUid 기준 또는 관리자
+  const computedIsHost = room?.createdByUid === uid || user?.isAdmin;
 
   // room.location이 처음 로드될 때 currentLocation 초기화
   useEffect(() => {
@@ -134,6 +142,18 @@ export default function Room() {
       source: 'custom',
       addedBy: nickname,
     });
+  };
+
+  const handleParticipationChange = async (status, reason = '') => {
+    const pRef = ref(db, `rooms/${roomId}/participation/${uid}`);
+    await set(pRef, {
+      nickname,
+      status,
+      reason,
+      updatedAt: Date.now()
+    });
+    setParticipation(status);
+    if (reason) setParticipationReason(reason);
   };
 
   const handleDeleteMenu = async (menuId) => {
@@ -296,6 +316,63 @@ export default function Room() {
               )}
             </>
           )}
+        </section>
+
+        <section className="room-section">
+          <h2 className="section-title">점심 참여 여부</h2>
+          <div className="participation-selector">
+            <button 
+              className={`participation-btn ${participation === 'participate' ? 'active' : ''}`}
+              onClick={() => handleParticipationChange('participate')}
+            >
+              🙋‍♂️ 참여
+            </button>
+            <button 
+              className={`participation-btn decline ${participation === 'decline' ? 'active' : ''}`}
+              onClick={() => handleParticipationChange('decline', participationReason)}
+            >
+              🙅‍♀️ 미참여
+            </button>
+          </div>
+          
+          {participation === 'decline' && (
+            <div className="decline-reason-input">
+              <input 
+                type="text" 
+                placeholder="미참여 사유를 입력해주세요 (예: 외부 미팅)"
+                value={participationReason}
+                onChange={(e) => setParticipationReason(e.target.value)}
+                onBlur={(e) => handleParticipationChange('decline', e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="participant-status-list">
+            <h3>참여자 현황</h3>
+            <div className="status-grid">
+              <div className="status-column">
+                <h4>참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'participate').length})</h4>
+                <ul>
+                  {Object.values(room?.participation || {})
+                    .filter(p => p.status === 'participate')
+                    .map((p, idx) => <li key={idx}>{p.nickname}</li>)}
+                </ul>
+              </div>
+              <div className="status-column decline">
+                <h4>미참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'decline').length})</h4>
+                <ul>
+                  {Object.values(room?.participation || {})
+                    .filter(p => p.status === 'decline')
+                    .map((p, idx) => (
+                      <li key={idx}>
+                        <strong>{p.nickname}</strong>
+                        {p.reason && <span className="reason"> - {p.reason}</span>}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="room-section">

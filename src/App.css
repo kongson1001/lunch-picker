@@ -1577,3 +1577,122 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ===== Participation ===== */
+.participation-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.participation-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: 12px;
+  border: 2px solid #eee;
+  background: white;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.participation-btn:hover {
+  background-color: #f9f9f9;
+}
+
+.participation-btn.active {
+  border-color: #4caf50;
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.participation-btn.decline.active {
+  border-color: #f44336;
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.decline-reason-input {
+  margin-bottom: 20px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.decline-reason-input input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #eee;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.decline-reason-input input:focus {
+  border-color: #f44336;
+}
+
+.participant-status-list {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 10px;
+}
+
+.participant-status-list h3 {
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 8px;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.status-column h4 {
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+  color: #2e7d32;
+}
+
+.status-column.decline h4 {
+  color: #c62828;
+}
+
+.status-column ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.status-column li {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 6px;
+  padding: 4px 0;
+}
+
+.status-column .reason {
+  color: #888;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+@media (max-width: 480px) {
+  .status-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+}
+

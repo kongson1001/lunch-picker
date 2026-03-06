@@ -144,7 +144,7 @@ export default function Chat({ roomId, user }) {
                 <div className="chat-bubble-wrap">
                   {!isMine && <span className="chat-nickname">{msg.nickname}</span>}
                   <div className="chat-bubble-row">
-                    {isMine && (
+                    {(isMine || user?.isAdmin) && (
                       <button className="chat-delete-btn" onClick={() => deleteMessage(roomId, msg.id)}>
                         삭제
                       </button>

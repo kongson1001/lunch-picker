@@ -368,7 +368,7 @@ export default function Home() {
                     <span className={`room-status-badge ${isClosed ? 'closed' : 'voting'}`}>
                       {isClosed ? '마감' : '투표중'}
                     </span>
-                    {room.createdByUid === user?.uid && (
+                    {(room.createdByUid === user?.uid || user?.isAdmin) && (
                       <button
                         className="room-delete-btn"
                         onClick={(e) => handleDeleteRoom(e, room)}
