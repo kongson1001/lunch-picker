@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db, ref, onValue, push, set, update, remove } from '../firebase';
-import { deleteRoom, hasOtherParticipants } from '../utils/room';
+import { deleteRoom, hasOtherParticipants, checkRoomPassword } from '../utils/room';
 import { reverseGeocodeNaver } from '../utils/naverSearch';
 import MenuList from '../components/MenuList';
 import AddMenu from '../components/AddMenu';
@@ -51,7 +51,9 @@ export default function Room() {
       if (!passwordChecked) {
         const isHost = data.createdByUid === uid;
         const hasAuth = sessionStorage.getItem(`room_auth_${roomId}`);
-        if (isHost || hasAuth || !data.password) {
+        // data.password 대신 data.hasPassword(또는 undefined 체크) 사용
+        const hasPassword = data.password !== undefined; 
+        if (isHost || hasAuth || !hasPassword) {
           setPasswordChecked(true);
         }
       }
@@ -211,8 +213,12 @@ export default function Room() {
 
   // 비밀번호 미인증 상태면 비밀번호 입력 화면 표시
   if (!passwordChecked) {
-    const handleGateSubmit = () => {
-      if (gateInput === room.password) {
+    const handleGateSubmit = async () => {
+      setLoading(true);
+      const success = await checkRoomPassword(roomId, gateInput);
+      setLoading(false);
+      
+      if (success) {
         sessionStorage.setItem(`room_auth_${roomId}`, 'true');
         setPasswordChecked(true);
       } else {

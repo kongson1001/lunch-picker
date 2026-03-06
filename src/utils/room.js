@@ -30,9 +30,24 @@ export async function createRoom(nickname, location, roomName, uid, password = '
   return roomId;
 }
 
-export async function getRoomPassword(roomId) {
+export async function checkRoomPassword(roomId, password) {
+  try {
+    const res = await fetch('/api/checkPassword', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId, password }),
+    });
+    const data = await res.json();
+    return data.success;
+  } catch (err) {
+    console.error('Password check failed:', err);
+    return false;
+  }
+}
+
+export async function hasRoomPassword(roomId) {
   const snapshot = await get(ref(db, `rooms/${roomId}/password`));
-  return snapshot.val() || '';
+  return !!snapshot.val();
 }
 
 export async function roomExists(roomId) {
@@ -91,10 +106,15 @@ export function onRoomList(callback) {
       callback([]);
       return;
     }
-    const rooms = Object.entries(data).map(([id, room]) => ({
-      id,
-      ...room,
-    }));
+    const rooms = Object.entries(data).map(([id, room]) => {
+      const roomInfo = {
+        id,
+        ...room,
+        hasPassword: !!room.password
+      };
+      delete roomInfo.password; // 클라이언트에 비밀번호가 전달되지 않도록 명시적 삭제
+      return roomInfo;
+    });
     callback(rooms);
   });
 }

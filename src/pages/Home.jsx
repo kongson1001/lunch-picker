@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { createRoom, roomExists, getRoomPassword, onRoomList, deleteRoom, hasOtherParticipants } from '../utils/room';
+import { createRoom, roomExists, hasRoomPassword, checkRoomPassword, onRoomList, deleteRoom, hasOtherParticipants } from '../utils/room';
 
 export default function Home() {
   const { user, login, loginAsAdmin, logout, loading: authLoading, updateProfile } = useAuth();
@@ -16,19 +16,31 @@ export default function Home() {
   const [editNickname, setEditNickname] = useState('');
   const [editImage, setEditImage] = useState(null);
   // 비밀번호 모달 상태
-  const [passwordModal, setPasswordModal] = useState(null); // { roomId, password }
+  const [passwordModal, setPasswordModal] = useState(null); // { roomId }
   const [modalInput, setModalInput] = useState('');
   const [modalError, setModalError] = useState('');
   // 관리자 로그인 모달 상태
   const [adminLoginModal, setAdminLoginModal] = useState(false);
   const [adminId, setAdminId] = useState('');
   const [adminPw, setAdminPw] = useState('');
+  const [adminClickCount, setAdminClickCount] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onRoomList(setRooms);
     return () => unsubscribe();
   }, []);
+
+  const handleTitleClick = () => {
+    setAdminClickCount((prev) => {
+      const next = prev + 1;
+      if (next === 5) {
+        setAdminLoginModal(true);
+        return 0;
+      }
+      return next;
+    });
+  };
 
   const handleLogin = async () => {
     setError('');
@@ -78,9 +90,9 @@ export default function Home() {
       setError('존재하지 않는 방입니다');
       return;
     }
-    const roomPw = await getRoomPassword(code);
-    if (roomPw) {
-      setPasswordModal({ roomId: code, password: roomPw });
+    const hasPw = await hasRoomPassword(code);
+    if (hasPw && !sessionStorage.getItem(`room_auth_${code}`)) {
+      setPasswordModal({ roomId: code });
       setModalInput('');
       setModalError('');
       return;
@@ -88,7 +100,7 @@ export default function Home() {
     navigate(`/room/${code}`);
   };
 
-  const handleRoomClick = (room) => {
+  const handleRoomClick = async (room) => {
     // 방장은 비밀번호 없이 바로 입장
     if (room.createdByUid === user?.uid) {
       sessionStorage.setItem(`room_auth_${room.id}`, 'true');
@@ -101,8 +113,8 @@ export default function Home() {
       return;
     }
     // 비밀번호방이면 모달
-    if (room.password) {
-      setPasswordModal({ roomId: room.id, password: room.password });
+    if (room.hasPassword) {
+      setPasswordModal({ roomId: room.id });
       setModalInput('');
       setModalError('');
       return;
@@ -110,9 +122,13 @@ export default function Home() {
     navigate(`/room/${room.id}`);
   };
 
-  const handlePasswordSubmit = () => {
+  const handlePasswordSubmit = async () => {
     if (!passwordModal) return;
-    if (modalInput === passwordModal.password) {
+    setLoading(true);
+    const success = await checkRoomPassword(passwordModal.roomId, modalInput);
+    setLoading(false);
+    
+    if (success) {
       sessionStorage.setItem(`room_auth_${passwordModal.roomId}`, 'true');
       setPasswordModal(null);
       navigate(`/room/${passwordModal.roomId}`);
@@ -187,7 +203,7 @@ export default function Home() {
   if (!user) {
     return (
       <div className="home-container">
-        <h1>오늘 뭐 먹지?</h1>
+        <h1 onClick={handleTitleClick} style={{ cursor: 'default', userSelect: 'none' }}>오늘 뭐 먹지?</h1>
         <p className="subtitle">팀 점심 메뉴를 투표로 정해보세요</p>
 
         {error && <p className="error">{error}</p>}
@@ -198,9 +214,6 @@ export default function Home() {
               <path fillRule="evenodd" clipRule="evenodd" d="M9 0.6C4.03 0.6 0 3.713 0 7.554c0 2.486 1.656 4.672 4.148 5.905l-1.054 3.9c-.093.345.302.616.596.408l4.67-3.096c.21.015.422.023.64.023 4.97 0 9-3.113 9-6.954C18 3.713 13.97 0.6 9 0.6" fill="#000000"/>
             </svg>
             카카오로 시작하기
-          </button>
-          <button className="admin-login-btn" onClick={() => setAdminLoginModal(true)} style={{ marginTop: '10px', backgroundColor: '#f0f0f0', border: '1px solid #ccc', padding: '10px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', width: '100%' }}>
-            🔧 관리자 테스트 로그인
           </button>
         </div>
 
@@ -239,7 +252,7 @@ export default function Home() {
   // 로그인 상태: 프로필 + 방 만들기/참가 UI
   return (
     <div className="home-container">
-      <h1>오늘 뭐 먹지?</h1>
+      <h1 onClick={handleTitleClick} style={{ cursor: 'default', userSelect: 'none' }}>오늘 뭐 먹지?</h1>
       <p className="subtitle">팀 점심 메뉴를 투표로 정해보세요</p>
 
       <div className="profile-card">
@@ -348,7 +361,7 @@ export default function Home() {
               >
                 <div className="room-card-header">
                   <span className="room-card-code">
-                    {room.password && <span className="room-lock-icon">🔒</span>}
+                    {room.hasPassword && <span className="room-lock-icon">🔒</span>}
                     {room.roomName || room.id}
                   </span>
                   <div className="room-card-header-right">
