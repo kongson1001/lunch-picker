@@ -16,6 +16,13 @@ export default function Chat({ roomId, user }) {
   const textareaRef = useRef(null);
   const isInitialMount = useRef(true);
 
+  // 전송 중 상태가 끝나면(전송 완료) 포커스 복구
+  useEffect(() => {
+    if (!sending && !editId) {
+      textareaRef.current?.focus();
+    }
+  }, [sending, editId]);
+
   // 이모지 목록
   const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
