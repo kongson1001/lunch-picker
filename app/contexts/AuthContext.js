@@ -8,7 +8,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Database API를 통해 사용자 정보 가져오기
   const fetchUserData = async (uid) => {
     try {
       const res = await fetch(`/api/db/users/${uid}/profile`);
@@ -24,14 +23,21 @@ export function AuthProvider({ children }) {
     // 카카오 SDK 초기화 (서버에서 키를 받아옴)
     const initKakao = async () => {
       if (typeof window !== 'undefined' && window.Kakao && !window.Kakao.isInitialized()) {
-        const res = await fetch('/api/naverConfig'); // 범용 설정 API로 활용 (실제로는 카카오 키도 서버에서 관리 가능)
-        // 실제로는 카카오 JS Key는 노출이 불가피한 경우가 많지만, 서버 API로 리다이렉트하는 방식을 이미 적용했으므로
-        // SDK 초기화용 키도 별도의 설정 API를 만들어 관리하는 것이 좋습니다.
-        // 여기서는 기존 API 설계를 확장하여 처리합니다.
+        try {
+          const res = await fetch('/api/naverConfig');
+          const { kakaoJsKey } = await res.json();
+          if (kakaoJsKey) {
+            window.Kakao.init(kakaoJsKey);
+            console.log('Kakao SDK 초기화 완료');
+          }
+        } catch (err) {
+          console.error('카카오 SDK 초기화 실패:', err);
+        }
       }
     };
 
-    // 카카오 로그인 리다이렉트 후 code 처리
+    initKakao();
+
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     if (code) {
@@ -131,17 +137,11 @@ export function AuthProvider({ children }) {
 
   const updateProfile = async (nickname, profileImage) => {
     if (!user) return;
-    
     try {
       await fetch(`/api/db/users/${user.uid}/profile`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          nickname,
-          profileImage,
-          updatedAt: Date.now()
-        })
+        body: JSON.stringify({ nickname, profileImage, updatedAt: Date.now() })
       });
-
       const updated = { ...user, nickname, profileImage, isAdmin: user.isAdmin };
       setUser(updated);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));

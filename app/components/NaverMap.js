@@ -4,9 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 async function loadNaverMapsSDK() {
   if (window.naver && window.naver.maps) return;
 
-  // 서버 API로부터 클라이언트 ID를 동적으로 가져옴
   const res = await fetch('/api/naverConfig');
-  const { clientId } = await res.json();
+  const { naverClientId: clientId } = await res.json();
 
   if (!clientId) throw new Error('Naver Maps Client ID not found');
 
@@ -37,13 +36,11 @@ export default function NaverMap({ lat, lng, markers = [], onReady }) {
 
   useEffect(() => {
     if (!sdkReady || !mapRef.current) return;
-
     const map = new window.naver.maps.Map(mapRef.current, {
       center: new window.naver.maps.LatLng(lat, lng),
       zoom: 15,
     });
     mapInstanceRef.current = map;
-
     currentMarkerRef.current = new window.naver.maps.Marker({
       position: new window.naver.maps.LatLng(lat, lng),
       map,
