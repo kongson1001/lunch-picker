@@ -20,20 +20,8 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // 1. 카카오 SDK 즉시 초기화 (환경변수 사용)
-    if (typeof window !== 'undefined' && window.Kakao) {
-      if (!window.Kakao.isInitialized()) {
-        const jsKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
-        if (jsKey) {
-          window.Kakao.init(jsKey);
-          console.log('Kakao SDK 초기화 완료');
-        } else {
-          console.warn('NEXT_PUBLIC_KAKAO_JS_KEY가 설정되지 않았습니다.');
-        }
-      }
-    }
+    // 카카오 SDK 초기화 코드 완전 삭제 (서버 사이드 REST API 방식으로 대체됨)
 
-    // 2. 카카오 로그인 리다이렉트 후 code 처리
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     if (code) {
@@ -112,6 +100,7 @@ export function AuthProvider({ children }) {
 
   const login = () => {
     const redirectUri = encodeURIComponent(window.location.origin);
+    // 서버 API로 리다이렉트 (키는 서버에서 처리)
     window.location.href = `/api/kakaoLogin?redirectUri=${redirectUri}`;
   };
 
