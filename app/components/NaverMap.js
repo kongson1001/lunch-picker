@@ -1,17 +1,16 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-function loadNaverMapsSDK() {
+async function loadNaverMapsSDK() {
+  if (window.naver && window.naver.maps) return;
+
+  // 서버 API로부터 클라이언트 ID를 동적으로 가져옴
+  const res = await fetch('/api/naverConfig');
+  const { clientId } = await res.json();
+
+  if (!clientId) throw new Error('Naver Maps Client ID not found');
+
   return new Promise((resolve, reject) => {
-    if (window.naver && window.naver.maps) {
-      resolve();
-      return;
-    }
-    const clientId = process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID;
-    if (!clientId) {
-      reject(new Error('NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID not set'));
-      return;
-    }
     const script = document.createElement('script');
     script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${clientId}&submodules=geocoder`;
     script.onload = () => resolve();
@@ -54,21 +53,15 @@ export default function NaverMap({ lat, lng, markers = [], onReady }) {
 
   useEffect(() => {
     if (!mapInstanceRef.current) return;
-
     const newCenter = new window.naver.maps.LatLng(lat, lng);
     mapInstanceRef.current.setCenter(newCenter);
-
-    if (currentMarkerRef.current) {
-      currentMarkerRef.current.setPosition(newCenter);
-    }
+    if (currentMarkerRef.current) currentMarkerRef.current.setPosition(newCenter);
   }, [lat, lng]);
 
   useEffect(() => {
     if (!mapInstanceRef.current) return;
-
     searchMarkersRef.current.forEach((m) => m.setMap(null));
     searchMarkersRef.current = [];
-
     markers.forEach((m) => {
       if (m.lat && m.lng) {
         const marker = new window.naver.maps.Marker({
