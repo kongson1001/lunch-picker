@@ -60,6 +60,11 @@ export async function deleteRoom(roomId) {
   await fetch(`/api/db/rooms/${roomId}`, { method: 'DELETE' });
 }
 
+export function hasOtherParticipants(room, creatorUid) {
+  const votes = room.votes || {};
+  return Object.keys(votes).some((uid) => uid !== creatorUid);
+}
+
 export async function sendMessage(roomId, user, text) {
   await fetch(`/api/db/rooms/${roomId}/messages`, {
     method: 'POST',
@@ -72,24 +77,46 @@ export async function sendMessage(roomId, user, text) {
   });
 }
 
+export async function deleteMessage(roomId, messageId) {
+  await fetch(`/api/db/rooms/${roomId}/messages/${messageId}`, { method: 'DELETE' });
+}
+
+export async function editMessage(roomId, messageId, newText) {
+  await fetch(`/api/db/rooms/${roomId}/messages/${messageId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ 
+      text: newText,
+      updatedAt: Date.now()
+    })
+  });
+}
+
+export async function toggleReaction(roomId, messageId, emoji, user) {
+  // 반응 기능은 서버 사이드 API 확장이 필요하므로 현재는 뼈대만 유지합니다.
+  console.warn('반응 기능은 현재 서버 API에서 준비 중입니다.');
+}
+
 export function onRoomList(callback) {
-  // 실시간 구독(onValue) 대신 정기적인 Fetch로 대체 (보안 우선)
   const fetchList = async () => {
-    const res = await fetch('/api/db/rooms');
-    const data = await res.json();
-    if (!data) {
-      callback([]);
-      return;
+    try {
+      const res = await fetch('/api/db/rooms');
+      const data = await res.json();
+      if (!data) {
+        callback([]);
+        return;
+      }
+      const rooms = Object.entries(data).map(([id, room]) => ({
+        id,
+        ...room,
+        hasPassword: !!room.password
+      }));
+      callback(rooms);
+    } catch (err) {
+      console.error('방 목록 불러오기 실패:', err);
     }
-    const rooms = Object.entries(data).map(([id, room]) => ({
-      id,
-      ...room,
-      hasPassword: !!room.password
-    }));
-    callback(rooms);
   };
 
   fetchList();
-  const interval = setInterval(fetchList, 5000); // 5초마다 갱신
+  const interval = setInterval(fetchList, 5000);
   return () => clearInterval(interval);
 }
