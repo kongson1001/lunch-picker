@@ -20,24 +20,20 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // 카카오 SDK 초기화 (서버에서 키를 받아옴)
-    const initKakao = async () => {
-      if (typeof window !== 'undefined' && window.Kakao && !window.Kakao.isInitialized()) {
-        try {
-          const res = await fetch('/api/naverConfig');
-          const { kakaoJsKey } = await res.json();
-          if (kakaoJsKey) {
-            window.Kakao.init(kakaoJsKey);
-            console.log('Kakao SDK 초기화 완료');
-          }
-        } catch (err) {
-          console.error('카카오 SDK 초기화 실패:', err);
+    // 1. 카카오 SDK 즉시 초기화 (환경변수 사용)
+    if (typeof window !== 'undefined' && window.Kakao) {
+      if (!window.Kakao.isInitialized()) {
+        const jsKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
+        if (jsKey) {
+          window.Kakao.init(jsKey);
+          console.log('Kakao SDK 초기화 완료');
+        } else {
+          console.warn('NEXT_PUBLIC_KAKAO_JS_KEY가 설정되지 않았습니다.');
         }
       }
-    };
+    }
 
-    initKakao();
-
+    // 2. 카카오 로그인 리다이렉트 후 code 처리
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     if (code) {
