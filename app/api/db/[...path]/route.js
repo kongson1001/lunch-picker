@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '../../../lib/firebaseAdmin';
+import { getAdminDb } from '../../../lib/firebaseAdmin';
 import { pusherServer } from '../../../lib/pusher';
 
 async function triggerUpdate(path) {
   try {
-    const rootPath = path.split('/')[0]; // rooms or users
-    const subPath = path.split('/')[1]; // roomId or userId
+    const rootPath = path.split('/')[0];
+    const subPath = path.split('/')[1];
     
-    // Pusher를 통해 'db-updated' 채널의 'update' 이벤트를 쏩니다.
     await pusherServer.trigger('db-updated', 'update', { 
       path: rootPath, 
       id: subPath,
@@ -21,6 +20,7 @@ async function triggerUpdate(path) {
 export async function GET(request, { params }) {
   const path = params.path.join('/');
   try {
+    const adminDb = getAdminDb();
     const snapshot = await adminDb.ref(path).once('value');
     return NextResponse.json(snapshot.val());
   } catch (error) {
@@ -32,9 +32,10 @@ export async function POST(request, { params }) {
   const path = params.path.join('/');
   const body = await request.json();
   try {
+    const adminDb = getAdminDb();
     const newRef = adminDb.ref(path).push();
     await newRef.set({ ...body, createdAt: Date.now() });
-    await triggerUpdate(path); // 알림 발송
+    await triggerUpdate(path);
     return NextResponse.json({ id: newRef.key });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -45,8 +46,9 @@ export async function PUT(request, { params }) {
   const path = params.path.join('/');
   const body = await request.json();
   try {
+    const adminDb = getAdminDb();
     await adminDb.ref(path).set(body);
-    await triggerUpdate(path); // 알림 발송
+    await triggerUpdate(path);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -57,8 +59,9 @@ export async function PATCH(request, { params }) {
   const path = params.path.join('/');
   const body = await request.json();
   try {
+    const adminDb = getAdminDb();
     await adminDb.ref(path).update(body);
-    await triggerUpdate(path); // 알림 발송
+    await triggerUpdate(path);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -68,8 +71,9 @@ export async function PATCH(request, { params }) {
 export async function DELETE(request, { params }) {
   const path = params.path.join('/');
   try {
+    const adminDb = getAdminDb();
     await adminDb.ref(path).remove();
-    await triggerUpdate(path); // 알림 발송
+    await triggerUpdate(path);
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
