@@ -1,83 +1,57 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { db, ref, onValue } from '../firebase';
-import { sendMessage, deleteMessage, editMessage, toggleReaction } from '../utils/room';
+import Pusher from 'pusher-js';
 
 export default function Chat({ roomId, user }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [newMsgInfo, setNewMsgInfo] = useState(null);
-  const [editId, setEditId] = useState(null);
-  const [editInput, setEditInput] = useState('');
   
   const bottomRef = useRef(null);
   const chatMessagesRef = useRef(null);
-  const textareaRef = useRef(null);
   const isInitialMount = useRef(true);
 
-  useEffect(() => {
-    if (!sending && !editId) {
-      textareaRef.current?.focus();
-    }
-  }, [sending, editId]);
-
-  const EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
-
-  useEffect(() => {
-    const messagesRef = ref(db, `rooms/${roomId}/messages`);
-    const unsubscribe = onValue(messagesRef, (snapshot) => {
-      const data = snapshot.val();
-      if (!data) {
-        setMessages([]);
-        isInitialMount.current = false;
-        return;
-      }
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch(`/api/db/rooms/${roomId}/messages`);
+      const data = await res.json();
+      if (!data) { setMessages([]); return; }
       
       const list = Object.entries(data)
         .map(([id, msg]) => ({ id, ...msg }))
         .sort((a, b) => a.createdAt - b.createdAt);
       
-      if (!isInitialMount.current && list.length > messages.length) {
-        const lastMsg = list[list.length - 1];
-        if (lastMsg.uid !== user?.uid) {
-          handleNewMessageFromOthers(lastMsg);
-        } else {
-          scrollToBottom();
-        }
-      }
-      
       setMessages(list);
-      isInitialMount.current = false;
-    });
-    return () => unsubscribe();
-  }, [roomId, messages.length, user?.uid]);
-
-  const handleNewMessageFromOthers = (msg) => {
-    const container = chatMessagesRef.current;
-    if (!container) return;
-
-    const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
-    if (isAtBottom) {
-      scrollToBottom();
-    } else {
-      setNewMsgInfo(msg);
-      setShowToast(true);
-      const timer = setTimeout(() => setShowToast(false), 4000);
-      return () => clearTimeout(timer);
-    }
+      if (isInitialMount.current) {
+        scrollToBottom();
+        isInitialMount.current = false;
+      }
+    } catch (err) { console.error('메시지 로딩 실패:', err); }
   };
+
+  useEffect(() => {
+    fetchMessages();
+
+    // Pusher 실시간 수신기 설정
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+    });
+
+    const channel = pusher.subscribe('db-updated');
+    channel.bind('update', (data) => {
+      // 내 채팅방의 업데이트 신호일 때만 갱신
+      if (data.path === 'rooms' && data.id === roomId) {
+        fetchMessages();
+      }
+    });
+
+    return () => {
+      pusher.unsubscribe('db-updated');
+    };
+  }, [roomId]);
 
   const scrollToBottom = () => {
-    setTimeout(() => {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
-
-  const handleToastClick = () => {
-    scrollToBottom();
-    setShowToast(false);
+    setTimeout(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, 100);
   };
 
   const handleSend = async () => {
@@ -85,68 +59,21 @@ export default function Chat({ roomId, user }) {
     if (!trimmed || sending) return;
     setSending(true);
     try {
-      await sendMessage(roomId, user, trimmed);
+      await fetch(`/api/db/rooms/${roomId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({
+          uid: user.uid, nickname: user.nickname, profileImage: user.profileImage || null, text: trimmed,
+        })
+      });
       setText('');
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-        textareaRef.current.focus();
-      }
-    } finally {
-      setSending(false);
-      setTimeout(() => textareaRef.current?.focus(), 0);
-    }
+      fetchMessages();
+    } finally { setSending(false); }
   };
 
-  const handleEditStart = (msg) => {
-    setEditId(msg.id);
-    setEditInput(msg.text);
-  };
-
-  const handleEditCancel = () => {
-    setEditId(null);
-    setEditInput('');
-  };
-
-  const handleEditSave = async (messageId) => {
-    const trimmed = editInput.trim();
-    if (!trimmed) return;
-    try {
-      await editMessage(roomId, messageId, trimmed);
-      setEditId(null);
-      setEditInput('');
-    } catch (err) {
-      console.error('메시지 수정 실패:', err);
-    }
-  };
-
-  const handleReaction = async (messageId, emoji) => {
-    if (!user) return;
-    try {
-      await toggleReaction(roomId, messageId, emoji, user);
-    } catch (err) {
-      console.error('반응 추가 실패:', err);
-    }
-  };
-
-  const handleNewline = () => {
-    if (sending || !textareaRef.current) return;
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const newText = text.substring(0, start) + '\n' + text.substring(end);
-    setText(newText);
-    setTimeout(() => {
-      textarea.focus();
-      textarea.selectionStart = textarea.selectionEnd = start + 1;
-    }, 0);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      if (e.nativeEvent.isComposing) return;
-      e.preventDefault();
-      handleSend();
-    }
+  const deleteMessage = async (messageId) => {
+    if (!window.confirm('메시지를 삭제할까요?')) return;
+    await fetch(`/api/db/rooms/${roomId}/messages/${messageId}`, { method: 'DELETE' });
+    fetchMessages();
   };
 
   return (
@@ -154,83 +81,24 @@ export default function Chat({ roomId, user }) {
       <h2 className="section-title">채팅</h2>
       <div className="chat-messages-container">
         <div className="chat-messages" ref={chatMessagesRef}>
-          {messages.length === 0 && (
-            <p className="chat-empty">첫 메시지를 보내보세요!</p>
-          )}
           {messages.map((msg) => {
             const isMine = msg.uid === user?.uid;
-            const isEditing = editId === msg.id;
-
             return (
               <div key={msg.id} className={`chat-message ${isMine ? 'mine' : 'others'}`}>
                 {!isMine && (
                   <div className="chat-avatar">
-                    {msg.profileImage
-                      ? <img src={msg.profileImage} alt="" />
-                      : <div className="chat-avatar-placeholder">{msg.nickname[0]}</div>
-                    }
+                    {msg.profileImage ? <img src={msg.profileImage} alt="" /> : <div className="chat-avatar-placeholder">{msg.nickname[0]}</div>}
                   </div>
                 )}
                 <div className="chat-bubble-wrap">
                   {!isMine && <span className="chat-nickname">{msg.nickname}</span>}
                   <div className="chat-bubble-row">
-                    {(isMine || user?.isAdmin) && !isEditing && (
+                    {(isMine || user?.isAdmin) && (
                       <div className="chat-actions">
-                        {isMine && (
-                          <button className="chat-action-btn edit" onClick={() => handleEditStart(msg)}>수정</button>
-                        )}
-                        <button className="chat-action-btn delete" onClick={() => deleteMessage(roomId, msg.id)}>삭제</button>
+                        <button className="chat-action-btn delete" onClick={() => deleteMessage(msg.id)}>삭제</button>
                       </div>
                     )}
-                    {isEditing ? (
-                      <div className="chat-edit-box">
-                        <textarea 
-                          value={editInput}
-                          onChange={(e) => setEditInput(e.target.value)}
-                          className="chat-edit-input"
-                          autoFocus
-                        />
-                        <div className="chat-edit-buttons">
-                          <button onClick={() => handleEditSave(msg.id)}>저장</button>
-                          <button onClick={handleEditCancel}>취소</button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="chat-bubble">
-                        {msg.text}
-                        {msg.updatedAt && <span className="chat-edited-mark">(수정됨)</span>}
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="chat-reactions-row">
-                    {msg.reactions && Object.entries(msg.reactions).map(([emoji, uids]) => {
-                      const count = Object.keys(uids).length;
-                      const hasVoted = user && uids[user.uid];
-                      return (
-                        <button 
-                          key={emoji} 
-                          className={`reaction-badge ${hasVoted ? 'active' : ''}`}
-                          onClick={() => handleReaction(msg.id, emoji)}
-                        >
-                          {emoji} {count}
-                        </button>
-                      );
-                    })}
-                    
-                    <div className="reaction-picker-wrap">
-                      <button className="add-reaction-btn">+</button>
-                      <div className="reaction-picker">
-                        {EMOJIS.map(emoji => (
-                          <span 
-                            key={emoji} 
-                            onClick={() => handleReaction(msg.id, emoji)}
-                          >
-                            {emoji}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                    <div className="chat-bubble">{msg.text}</div>
                   </div>
                 </div>
               </div>
@@ -238,32 +106,10 @@ export default function Chat({ roomId, user }) {
           })}
           <div ref={bottomRef} />
         </div>
-        
-        {showToast && (
-          <div className="chat-new-msg-toast" onClick={handleToastClick}>
-            <span className="toast-nickname">{newMsgInfo?.nickname}: </span>
-            <span className="toast-text">{newMsgInfo?.text}</span>
-            <span className="toast-arrow">↓</span>
-          </div>
-        )}
       </div>
-
       <div className="chat-input-row">
-        <textarea
-          ref={textareaRef}
-          className="chat-input chat-textarea"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="메시지를 입력하세요"
-          disabled={sending}
-          maxLength={300}
-          rows="1"
-        />
-        <div className="chat-btn-group">
-          <button className="chat-newline-btn" onClick={handleNewline} disabled={sending}>↵</button>
-          <button className="chat-send-btn" onClick={handleSend} disabled={sending || !text.trim()}>전송</button>
-        </div>
+        <textarea className="chat-input chat-textarea" value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())} placeholder="메시지를 입력하세요" disabled={sending} />
+        <button className="chat-send-btn" onClick={handleSend} disabled={sending || !text.trim()}>전송</button>
       </div>
     </section>
   );

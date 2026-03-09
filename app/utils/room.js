@@ -1,4 +1,4 @@
-import { db, ref, set, push, get, onValue, remove, update } from '../firebase';
+// 클라이언트 SDK를 쓰지 않고 우리 서버 API를 호출합니다.
 
 export function generateRoomId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -11,7 +11,6 @@ export function generateRoomId() {
 
 export async function createRoom(nickname, location, roomName, uid, password = '') {
   const roomId = generateRoomId();
-  const roomRef = ref(db, `rooms/${roomId}`);
   const roomData = {
     createdAt: Date.now(),
     createdBy: nickname,
@@ -26,100 +25,71 @@ export async function createRoom(nickname, location, roomName, uid, password = '
   if (password) {
     roomData.password = password;
   }
-  await set(roomRef, roomData);
+  
+  await fetch(`/api/db/rooms/${roomId}`, {
+    method: 'PUT',
+    body: JSON.stringify(roomData)
+  });
+  
   return roomId;
 }
 
-export async function checkRoomPassword(roomId, password) {
-  try {
-    const res = await fetch('/api/checkPassword', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomId, password }),
-    });
-    const data = await res.json();
-    return data.success;
-  } catch (err) {
-    console.error('Password check failed:', err);
-    return false;
-  }
+export async function roomExists(roomId) {
+  const res = await fetch(`/api/db/rooms/${roomId}`);
+  const data = await res.json();
+  return !!data;
 }
 
 export async function hasRoomPassword(roomId) {
-  const snapshot = await get(ref(db, `rooms/${roomId}/password`));
-  return !!snapshot.val();
+  const res = await fetch(`/api/db/rooms/${roomId}/password`);
+  const data = await res.json();
+  return !!data;
 }
 
-export async function roomExists(roomId) {
-  const roomRef = ref(db, `rooms/${roomId}`);
-  const snapshot = await get(roomRef);
-  return snapshot.exists();
-}
-
-export function hasOtherParticipants(room, creatorUid) {
-  const votes = room.votes || {};
-  return Object.keys(votes).some((uid) => uid !== creatorUid);
+export async function checkRoomPassword(roomId, password) {
+  const res = await fetch('/api/checkPassword', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomId, password }),
+  });
+  const data = await res.json();
+  return data.success;
 }
 
 export async function deleteRoom(roomId) {
-  await remove(ref(db, `rooms/${roomId}`));
+  await fetch(`/api/db/rooms/${roomId}`, { method: 'DELETE' });
 }
 
 export async function sendMessage(roomId, user, text) {
-  const messagesRef = ref(db, `rooms/${roomId}/messages`);
-  const newRef = push(messagesRef);
-  await set(newRef, {
-    uid: user.uid,
-    nickname: user.nickname,
-    profileImage: user.profileImage || null,
-    text: text.trim(),
-    createdAt: Date.now(),
-  });
-}
-
-export async function deleteMessage(roomId, messageId) {
-  await remove(ref(db, `rooms/${roomId}/messages/${messageId}`));
-}
-
-export async function editMessage(roomId, messageId, newText) {
-  const msgRef = ref(db, `rooms/${roomId}/messages/${messageId}`);
-  await update(msgRef, { 
-    text: newText,
-    updatedAt: Date.now()
-  });
-}
-
-export async function toggleReaction(roomId, messageId, emoji, user) {
-  const reactionRef = ref(db, `rooms/${roomId}/messages/${messageId}/reactions/${emoji}/${user.uid}`);
-  const snapshot = await get(reactionRef);
-  
-  if (snapshot.exists()) {
-    await remove(reactionRef);
-  } else {
-    await set(reactionRef, {
+  await fetch(`/api/db/rooms/${roomId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      uid: user.uid,
       nickname: user.nickname,
-      timestamp: Date.now()
-    });
-  }
+      profileImage: user.profileImage || null,
+      text: text.trim(),
+    })
+  });
 }
 
 export function onRoomList(callback) {
-  const roomsRef = ref(db, 'rooms');
-  return onValue(roomsRef, (snapshot) => {
-    const data = snapshot.val();
+  // 실시간 구독(onValue) 대신 정기적인 Fetch로 대체 (보안 우선)
+  const fetchList = async () => {
+    const res = await fetch('/api/db/rooms');
+    const data = await res.json();
     if (!data) {
       callback([]);
       return;
     }
-    const rooms = Object.entries(data).map(([id, room]) => {
-      const roomInfo = {
-        id,
-        ...room,
-        hasPassword: !!room.password
-      };
-      delete roomInfo.password;
-      return roomInfo;
-    });
+    const rooms = Object.entries(data).map(([id, room]) => ({
+      id,
+      ...room,
+      hasPassword: !!room.password
+    }));
     callback(rooms);
-  });
+  };
+
+  fetchList();
+  const interval = setInterval(fetchList, 5000); // 5초마다 갱신
+  return () => clearInterval(interval);
 }
