@@ -18,8 +18,9 @@ async function triggerUpdate(path) {
 }
 
 export async function GET(request, { params }) {
-  const path = params.path.join('/');
   try {
+    const { path: pathSegments } = await params;
+    const path = pathSegments.join('/');
     const adminDb = getAdminDb();
     const snapshot = await adminDb.ref(path).once('value');
     return NextResponse.json(snapshot.val());
@@ -29,9 +30,10 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-  const path = params.path.join('/');
-  const body = await request.json();
   try {
+    const { path: pathSegments } = await params;
+    const path = pathSegments.join('/');
+    const body = await request.json();
     const adminDb = getAdminDb();
     const newRef = adminDb.ref(path).push();
     await newRef.set({ ...body, createdAt: Date.now() });
@@ -43,9 +45,10 @@ export async function POST(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-  const path = params.path.join('/');
-  const body = await request.json();
   try {
+    const { path: pathSegments } = await params;
+    const path = pathSegments.join('/');
+    const body = await request.json();
     const adminDb = getAdminDb();
     await adminDb.ref(path).set(body);
     await triggerUpdate(path);
@@ -56,9 +59,10 @@ export async function PUT(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const path = params.path.join('/');
-  const body = await request.json();
   try {
+    const { path: pathSegments } = await params;
+    const path = pathSegments.join('/');
+    const body = await request.json();
     const adminDb = getAdminDb();
     await adminDb.ref(path).update(body);
     await triggerUpdate(path);
@@ -69,8 +73,9 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const path = params.path.join('/');
   try {
+    const { path: pathSegments } = await params;
+    const path = pathSegments.join('/');
     const adminDb = getAdminDb();
     await adminDb.ref(path).remove();
     await triggerUpdate(path);

@@ -7,7 +7,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'roomId와 password가 필요합니다' }, { status: 400 });
   }
 
-  const DATABASE_URL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
+  const DATABASE_URL = process.env.FIREBASE_DATABASE_URL;
   if (!DATABASE_URL) {
     return NextResponse.json({ error: 'DATABASE_URL not configured' }, { status: 500 });
   }
