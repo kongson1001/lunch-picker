@@ -40,6 +40,30 @@
 - `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`: Pusher 클라이언트 SDK (Chat.js에서 직접 사용)
 - **그 외 Firebase·Kakao 키는 모두 서버사이드 전용 — `NEXT_PUBLIC_` 사용 금지**
 
+## 🚧 다음 개선 과제: 하이브리드 아키텍처로 성능 개선
+
+**현재 문제**: 모든 데이터 읽기가 Vercel 서버리스 함수를 거침 → 콜드스타트 1~3초 → 예전 Vite 대비 느림
+
+**목표 구조 (하이브리드)**:
+- **읽기 / 실시간**: Firebase 클라이언트 SDK (`onValue`) 브라우저에서 직접 → 즉시 반영
+- **쓰기 / 민감 작업**: 서버 API 유지 (카카오 로그인, 관리자 기능 등)
+
+**Firebase API 키 노출에 대하여**: Firebase 웹 API 키(`NEXT_PUBLIC_FIREBASE_*`)는 구글 공식 문서 기준으로 **공개되어도 안전한 키**임. Firebase 보안은 키가 아니라 Database Rules로 제어함. 따라서 클라이언트 SDK용 키는 `NEXT_PUBLIC_`으로 노출 허용.
+
+**반드시 서버에만 있어야 할 키 (변경 없음)**:
+- `KAKAO_REST_API_KEY`
+- `FIREBASE_PRIVATE_KEY` (서비스 계정)
+- `ADMIN_ID`, `ADMIN_PW`
+
+**작업 범위**:
+1. `app/lib/firebase.js` 생성 — Firebase 클라이언트 SDK 초기화
+2. `app/utils/room.js`의 읽기 함수들 (`onRoomList` 등) → `onValue` 방식으로 교체
+3. `app/room/[roomId]/page.js` → 폴링 제거, `onValue` 실시간 구독으로 교체
+4. `.env.local` 및 Vercel에 `NEXT_PUBLIC_FIREBASE_*` 변수 추가
+5. 쓰기(`PUT`, `POST`, `DELETE`)는 기존 서버 API 그대로 유지
+
+---
+
 ## ⚠️ 개발 가이드 및 규칙
 1. **키 노출 금지**: `NEXT_PUBLIC_`은 빌드 결과물에 평문으로 포함되어 브라우저에 노출됨. 새 환경변수를 추가할 때 반드시 "이 값이 클라이언트 컴포넌트에서 직접 쓰이는가?" 확인 후 결정. 이 프로젝트의 Firebase·Kakao는 전부 서버(Admin SDK, REST API)로만 처리하므로 해당 키에 `NEXT_PUBLIC_` 사용 불가.
 2. **보안**: API 키나 비밀번호 등 민감한 정보는 반드시 `app/api` 내부의 서버 사이드 로직에서 처리하고, 클라이언트에 노출하지 않습니다.
