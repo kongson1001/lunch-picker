@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Pusher from 'pusher-js';
 import { useAuth } from '../../contexts/AuthContext';
 import { deleteRoom, hasOtherParticipants, checkRoomPassword } from '../../utils/room';
 import { reverseGeocodeNaver } from '../../utils/naverSearch';
@@ -70,8 +71,22 @@ export default function RoomPage() {
   useEffect(() => {
     if (!user) { router.push('/'); return; }
     fetchRoomData();
-    const interval = setInterval(fetchRoomData, 4000); // 4초마다 갱신
-    return () => clearInterval(interval);
+
+    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+    });
+    const channel = pusher.subscribe('db-updated');
+    channel.bind('update', (data) => {
+      if (data.path === 'rooms' && data.id === roomId) {
+        fetchRoomData();
+      }
+    });
+
+    const interval = setInterval(fetchRoomData, 10000); // Pusher 보조용 10초 폴백
+    return () => {
+      pusher.unsubscribe('db-updated');
+      clearInterval(interval);
+    };
   }, [roomId, user]);
 
   useEffect(() => {
