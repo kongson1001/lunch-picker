@@ -16,7 +16,7 @@ export default function RoomPage() {
   const params = useParams();
   const roomId = params.roomId;
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, updateProfile } = useAuth();
 
   const nickname = user?.nickname || '익명';
   const uid = user?.uid || '';
@@ -36,6 +36,10 @@ export default function RoomPage() {
   const [participationReason, setParticipationReason] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState('');
+  const [nameConflictModal, setNameConflictModal] = useState(false);
+  const [nameConflictInput, setNameConflictInput] = useState('');
+  const [nameConflictError, setNameConflictError] = useState('');
+  const [nameConflictLoading, setNameConflictLoading] = useState(false);
 
   const fetchRoomData = async () => {
     if (!roomId) return;
@@ -50,6 +54,22 @@ export default function RoomPage() {
       
       setRoom(data);
       setLoading(false);
+
+      // 방 진입 시 이름 충돌 체크 (내 데이터가 없고 같은 이름이 있으면 변경 유도)
+      if (data && uid && nickname !== '익명') {
+        const myParticipation = data.participation?.[uid];
+        const myVote = data.votes?.[uid];
+        if (!myParticipation && !myVote) {
+          const participationNicknames = Object.values(data.participation || {}).map(p => p.nickname);
+          const voteNicknames = Object.values(data.votes || {}).map(v => v.nickname);
+          const allNicknames = new Set([...participationNicknames, ...voteNicknames]);
+          if (allNicknames.has(nickname)) {
+            setNameConflictModal(true);
+            setNameConflictInput('');
+            setNameConflictError('');
+          }
+        }
+      }
 
       if (data.participation?.[uid]) {
         setParticipation(data.participation[uid].status || 'pending');
@@ -161,12 +181,35 @@ export default function RoomPage() {
       await fetch(`/api/db/rooms/${roomId}/participation/${uid}`, {
         method: 'PUT',
         body: JSON.stringify({
-          nickname, status, reason: status === 'decline' ? reason : '', updatedAt: Date.now()
+          nickname, status, reason: status === 'decline' ? reason : '', updatedAt: Date.now(),
+          isGuest: user?.isGuest || false
         })
       });
       setParticipation(status);
     }
     fetchRoomData();
+  };
+
+  const handleNameConflictSubmit = async () => {
+    const name = nameConflictInput.trim();
+    if (!name) { setNameConflictError('이름을 입력해주세요'); return; }
+    setNameConflictLoading(true);
+    setNameConflictError('');
+    try {
+      const checkRes = await fetch(`/api/checkNickname?nickname=${encodeURIComponent(name)}&excludeUid=${uid}`);
+      const { available } = await checkRes.json();
+      if (!available) {
+        setNameConflictError('사용이 불가능한 이름입니다');
+        setNameConflictLoading(false);
+        return;
+      }
+      await updateProfile(name, user?.profileImage || null);
+      setNameConflictModal(false);
+    } catch (err) {
+      setNameConflictError(err.message || '오류가 발생했습니다');
+    } finally {
+      setNameConflictLoading(false);
+    }
   };
 
   const handleVote = async (menuId) => {
@@ -178,7 +221,7 @@ export default function RoomPage() {
     const promises = [
       fetch(`/api/db/rooms/${roomId}/votes/${uid}`, {
         method: 'PUT',
-        body: JSON.stringify({ nickname, menuIds: updatedVotes })
+        body: JSON.stringify({ nickname, menuIds: updatedVotes, isGuest: user?.isGuest || false })
       })
     ];
 
@@ -187,7 +230,7 @@ export default function RoomPage() {
       promises.push(
         fetch(`/api/db/rooms/${roomId}/participation/${uid}`, {
           method: 'PUT',
-          body: JSON.stringify({ nickname, status: 'participate', reason: '', updatedAt: Date.now() })
+          body: JSON.stringify({ nickname, status: 'participate', reason: '', updatedAt: Date.now(), isGuest: user?.isGuest || false })
         })
       );
       setParticipation('participate');
@@ -225,7 +268,7 @@ export default function RoomPage() {
     const updatedScheduleVotes = Array.from(voteSet);
     await fetch(`/api/db/rooms/${roomId}/scheduleVotes/${uid}`, {
       method: 'PUT',
-      body: JSON.stringify({ nickname, scheduleIds: updatedScheduleVotes }),
+      body: JSON.stringify({ nickname, scheduleIds: updatedScheduleVotes, isGuest: user?.isGuest || false }),
     });
     setMyScheduleVotes(updatedScheduleVotes);
     fetchRoomData();
@@ -432,7 +475,7 @@ export default function RoomPage() {
                   <ul>
                     {Object.values(room?.participation || {})
                       .filter(p => p.status === 'participate')
-                      .map((p, idx) => <li key={idx}>{p.nickname}</li>)}
+                      .map((p, idx) => <li key={idx}>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</li>)}
                   </ul>
                 </div>
                 <div className="status-column decline">
@@ -442,7 +485,7 @@ export default function RoomPage() {
                       .filter(p => p.status === 'decline')
                       .map((p, idx) => (
                         <li key={idx}>
-                          <strong>{p.nickname}</strong>
+                          <strong>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</strong>
                           {p.reason && <span className="reason"> - {p.reason}</span>}
                         </li>
                       ))}
@@ -455,6 +498,32 @@ export default function RoomPage() {
 
         <Chat roomId={roomId} user={user} />
       </div>
+
+      {nameConflictModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>이름 변경 필요</h3>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
+              이미 <strong>{nickname}</strong>이 이 방에 있습니다.<br />이름을 변경하고 입장하세요.
+            </p>
+            <input
+              type="text"
+              placeholder="새 이름 입력"
+              value={nameConflictInput}
+              onChange={(e) => { setNameConflictInput(e.target.value); setNameConflictError(''); }}
+              onKeyDown={(e) => e.key === 'Enter' && handleNameConflictSubmit()}
+              maxLength={20}
+              autoFocus
+            />
+            {nameConflictError && <p className="error">{nameConflictError}</p>}
+            <div className="modal-buttons">
+              <button className="primary-btn" onClick={handleNameConflictSubmit} disabled={nameConflictLoading}>
+                {nameConflictLoading ? '확인 중...' : '변경 후 입장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
