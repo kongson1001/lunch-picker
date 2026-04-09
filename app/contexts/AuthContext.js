@@ -7,6 +7,8 @@ const STORAGE_KEY = 'kakao_user';
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [pendingKakaoUser, setPendingKakaoUser] = useState(null);
+  // { uid, kakaoNickname } — 이름 중복으로 재입력 필요한 카카오 신규 유저
 
   const fetchUserData = async (uid) => {
     try {
@@ -20,8 +22,6 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // 카카오 SDK 초기화 코드 완전 삭제 (서버 사이드 REST API 방식으로 대체됨)
-
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     if (code) {
@@ -35,16 +35,26 @@ export function AuthProvider({ children }) {
       if (cached) {
         try {
           const cachedUser = JSON.parse(cached);
-          const dbData = await fetchUserData(cachedUser.uid);
-          if (dbData) {
-            const mergedUser = { ...cachedUser, ...dbData };
-            setUser(mergedUser);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
-          } else {
-            setUser(cachedUser);
+          setUser(cachedUser);
+
+          const sessionRes = await fetch('/api/me');
+          if (!sessionRes.ok) {
+            setUser(null);
+            localStorage.removeItem(STORAGE_KEY);
+            setLoading(false);
+            return;
+          }
+
+          if (!cachedUser.isGuest) {
+            const dbData = await fetchUserData(cachedUser.uid);
+            if (dbData) {
+              const mergedUser = { ...cachedUser, ...dbData };
+              setUser(mergedUser);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedUser));
+            }
           }
         } catch {
-          localStorage.removeItem(STORAGE_KEY);
+          // 네트워크 오류 시 캐시 유저 유지
         }
       }
       setLoading(false);
@@ -61,46 +71,96 @@ export function AuthProvider({ children }) {
       );
       const data = await res.json();
 
-      if (!data.access_token) {
-        throw new Error(data.error_description || '토큰 발급 실패');
+      if (!data.uid) {
+        throw new Error(data.error_description || '로그인 실패');
       }
 
-      const userRes = await fetch('https://kapi.kakao.com/v2/user/me', {
-        headers: { Authorization: `Bearer ${data.access_token}` },
-      });
-      const userData = await userRes.json();
-      const uid = `kakao_${userData.id}`;
-
-      const dbData = await fetchUserData(uid);
-      
-      const kakaoUser = {
-        uid,
-        nickname: dbData?.nickname || userData.kakao_account?.profile?.nickname || `사용자${userData.id}`,
-        profileImage: dbData?.profileImage || null,
-      };
+      const dbData = await fetchUserData(data.uid);
 
       if (!dbData) {
-        await fetch(`/api/db/users/${uid}/profile`, {
+        // 신규 유저 — 이름 중복 검사
+        const checkRes = await fetch(
+          `/api/checkNickname?nickname=${encodeURIComponent(data.nickname)}&excludeUid=${data.uid}`
+        );
+        const { available } = await checkRes.json();
+
+        if (!available) {
+          // 이름 중복 → 재입력 모달 (page.js에서 처리)
+          setPendingKakaoUser({ uid: data.uid, kakaoNickname: data.nickname });
+          setLoading(false);
+          return;
+        }
+
+        // 이름 사용 가능 → 프로필 저장 후 로그인 완료
+        await fetch(`/api/db/users/${data.uid}/profile`, {
           method: 'PUT',
           body: JSON.stringify({
-            nickname: kakaoUser.nickname,
-            profileImage: kakaoUser.profileImage,
+            nickname: data.nickname,
+            profileImage: null,
             updatedAt: Date.now()
           })
         });
-      }
 
-      setUser(kakaoUser);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(kakaoUser));
+        const kakaoUser = { uid: data.uid, nickname: data.nickname, profileImage: null };
+        setUser(kakaoUser);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(kakaoUser));
+      } else {
+        // 기존 유저 — 저장된 이름 사용
+        const kakaoUser = {
+          uid: data.uid,
+          nickname: dbData.nickname,
+          profileImage: dbData.profileImage || null,
+        };
+        setUser(kakaoUser);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(kakaoUser));
+      }
     } catch (err) {
       console.error('카카오 로그인 실패:', err);
     }
     setLoading(false);
   };
 
+  const completeKakaoLogin = async (nickname) => {
+    if (!pendingKakaoUser) return;
+    const { uid } = pendingKakaoUser;
+    await fetch(`/api/db/users/${uid}/profile`, {
+      method: 'PUT',
+      body: JSON.stringify({ nickname, profileImage: null, updatedAt: Date.now() })
+    });
+    const kakaoUser = { uid, nickname, profileImage: null };
+    setUser(kakaoUser);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(kakaoUser));
+    setPendingKakaoUser(null);
+  };
+
+  const guestLogin = async (nickname) => {
+    // 클라이언트 사전 검사
+    const checkRes = await fetch(
+      `/api/checkNickname?nickname=${encodeURIComponent(nickname)}`
+    );
+    const { available } = await checkRes.json();
+    if (!available) {
+      throw new Error('사용이 불가능한 이름입니다');
+    }
+
+    const res = await fetch('/api/guestLogin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nickname }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || '비로그인 로그인 실패');
+    }
+
+    const guestUser = { uid: data.uid, nickname: data.nickname, isGuest: true };
+    setUser(guestUser);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(guestUser));
+    return guestUser;
+  };
+
   const login = () => {
     const redirectUri = encodeURIComponent(window.location.origin);
-    // 서버 API로 리다이렉트 (키는 서버에서 처리)
     window.location.href = `/api/kakaoLogin?redirectUri=${redirectUri}`;
   };
 
@@ -115,7 +175,8 @@ export function AuthProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(adminUser));
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await fetch('/api/logout', { method: 'POST' });
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -123,10 +184,24 @@ export function AuthProvider({ children }) {
   const updateProfile = async (nickname, profileImage) => {
     if (!user) return;
     try {
-      await fetch(`/api/db/users/${user.uid}/profile`, {
-        method: 'PATCH',
-        body: JSON.stringify({ nickname, profileImage, updatedAt: Date.now() })
-      });
+      // 닉네임이 변경되는 경우에만 중복 검사
+      if (nickname !== user.nickname) {
+        const checkRes = await fetch(
+          `/api/checkNickname?nickname=${encodeURIComponent(nickname)}&excludeUid=${user.uid}`
+        );
+        const { available } = await checkRes.json();
+        if (!available) {
+          throw new Error('사용이 불가능한 이름입니다');
+        }
+      }
+
+      if (!user.isGuest) {
+        await fetch(`/api/db/users/${user.uid}/profile`, {
+          method: 'PATCH',
+          body: JSON.stringify({ nickname, profileImage, updatedAt: Date.now() })
+        });
+      }
+
       const updated = { ...user, nickname, profileImage, isAdmin: user.isAdmin };
       setUser(updated);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -137,7 +212,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, loginAsAdmin, logout, loading, updateProfile }}>
+    <AuthContext.Provider value={{ user, login, loginAsAdmin, logout, loading, updateProfile, guestLogin, pendingKakaoUser, completeKakaoLogin }}>
       {children}
     </AuthContext.Provider>
   );
