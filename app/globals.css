@@ -2050,3 +2050,27 @@ body {
   color: #333;
 }
 
+
+/* 비로그인 배지 */
+.guest-badge {
+  font-size: 12px;
+  margin-right: 2px;
+  vertical-align: middle;
+}
+
+/* 비로그인 시작 버튼 */
+.guest-login-btn {
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #666;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.guest-login-btn:hover {
+  background: #f5f5f5;
+}

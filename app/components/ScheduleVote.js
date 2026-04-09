@@ -23,7 +23,7 @@ export default function ScheduleVote({ schedules, scheduleVotes, myScheduleVotes
     if (!scheduleVotes) return [];
     return Object.values(scheduleVotes)
       .filter(v => v.scheduleIds && v.scheduleIds.includes(scheduleId))
-      .map(v => v.nickname);
+      .map(v => ({ nickname: v.nickname, isGuest: v.isGuest || false }));
   };
 
   const sorted = Object.entries(schedules || {})
@@ -50,7 +50,17 @@ export default function ScheduleVote({ schedules, scheduleVotes, myScheduleVotes
                 {formatSchedule(s)}
               </h3>
               <span className="schedule-added-by">제안: {s.addedBy}</span>
-              {voters.length > 0 && <p className="voter-list">{voters.join(', ')}</p>}
+              {voters.length > 0 && (
+                <p className="voter-list">
+                  {voters.map((v, i) => (
+                    <span key={i}>
+                      {i > 0 && ', '}
+                      {v.isGuest && <span className="guest-badge">👤</span>}
+                      {v.nickname}
+                    </span>
+                  ))}
+                </p>
+              )}
             </div>
             <div className="schedule-vote-actions">
               <span className="vote-count">{voteCount}표</span>
