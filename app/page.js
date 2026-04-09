@@ -305,10 +305,10 @@ export default function Home() {
                 카카오로 시작하기
               </button>
               <button className="guest-login-btn" onClick={() => { setGuestModal('register'); setGuestName(''); setGuestPassword(''); setGuestPasswordConfirm(''); setGuestError(''); }}>
-                비회원 가입
+                임시회원 가입
               </button>
               <button className="guest-login-btn" onClick={() => { setGuestModal('login'); setGuestName(''); setGuestPassword(''); setGuestError(''); }}>
-                비회원 로그인
+                임시회원 로그인
               </button>
             </div>
           </>
@@ -472,7 +472,7 @@ export default function Home() {
         {guestModal && (
           <div className="modal-overlay" onClick={() => setGuestModal(null)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3>{guestModal === 'register' ? '비회원 가입' : '비회원 로그인'}</h3>
+              <h3>{guestModal === 'register' ? '임시회원 가입' : '임시회원 로그인'}</h3>
               {guestModal === 'register' && (
                 <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
                   이름과 비밀번호를 설정하세요.<br />
