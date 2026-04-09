@@ -117,7 +117,7 @@ function maskRoomUids(roomData, myUid) {
         masked[uid] = vote;
       } else {
         const safeKey = vote.nickname || `user${Object.keys(masked).length}`;
-        masked[safeKey] = { menuIds: vote.menuIds, nickname: vote.nickname };
+        masked[safeKey] = { menuIds: vote.menuIds, nickname: vote.nickname, isGuest: vote.isGuest || false };
       }
     }
     result.votes = masked;
@@ -130,7 +130,7 @@ function maskRoomUids(roomData, myUid) {
         masked[uid] = p;
       } else {
         const safeKey = p.nickname || `user${Object.keys(masked).length}`;
-        masked[safeKey] = { nickname: p.nickname, status: p.status, reason: p.reason, updatedAt: p.updatedAt };
+        masked[safeKey] = { nickname: p.nickname, status: p.status, reason: p.reason, updatedAt: p.updatedAt, isGuest: p.isGuest || false };
       }
     }
     result.participation = masked;
@@ -156,7 +156,7 @@ function maskRoomUids(roomData, myUid) {
         masked[uid] = vote;
       } else {
         const safeKey = vote.nickname || `user${Object.keys(masked).length}`;
-        masked[safeKey] = { scheduleIds: vote.scheduleIds, nickname: vote.nickname };
+        masked[safeKey] = { scheduleIds: vote.scheduleIds, nickname: vote.nickname, isGuest: vote.isGuest || false };
       }
     }
     result.scheduleVotes = masked;
