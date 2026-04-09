@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import Pusher from 'pusher-js';
 import { useAuth } from '../../contexts/AuthContext';
 import { deleteRoom, hasOtherParticipants, checkRoomPassword } from '../../utils/room';
 import { reverseGeocodeNaver } from '../../utils/naverSearch';
@@ -10,18 +9,21 @@ import AddMenu from '../../components/AddMenu';
 import NaverMap from '../../components/NaverMap';
 import RestaurantSearch from '../../components/RestaurantSearch';
 import Chat from '../../components/Chat';
+import ScheduleVote from '../../components/ScheduleVote';
+import AddSchedule from '../../components/AddSchedule';
 
 export default function RoomPage() {
   const params = useParams();
   const roomId = params.roomId;
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const nickname = user?.nickname || '익명';
   const uid = user?.uid || '';
 
   const [room, setRoom] = useState(null);
   const [myVotes, setMyVotes] = useState([]);
+  const [myScheduleVotes, setMyScheduleVotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [passwordChecked, setPasswordChecked] = useState(false);
   const [gateInput, setGateInput] = useState('');
@@ -32,6 +34,8 @@ export default function RoomPage() {
   const [locating, setLocating] = useState(false);
   const [participation, setParticipation] = useState('pending');
   const [participationReason, setParticipationReason] = useState('');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
 
   const fetchRoomData = async () => {
     if (!roomId) return;
@@ -53,7 +57,7 @@ export default function RoomPage() {
       }
 
       if (!passwordChecked) {
-        const isHost = data.createdByUid === uid;
+        const isHost = data.isMyRoom;
         const hasAuth = sessionStorage.getItem(`room_auth_${roomId}`);
         if (isHost || hasAuth || data.password === undefined) {
           setPasswordChecked(true);
@@ -69,25 +73,15 @@ export default function RoomPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { router.push('/'); return; }
     fetchRoomData();
 
-    const pusher = new Pusher(process.env.NEXT_PUBLIC_PUSHER_KEY, {
-      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
-    });
-    const channel = pusher.subscribe('db-updated');
-    channel.bind('update', (data) => {
-      if (data.path === 'rooms' && data.id === roomId) {
-        fetchRoomData();
-      }
-    });
-
-    const interval = setInterval(fetchRoomData, 10000); // Pusher 보조용 10초 폴백
-    return () => {
-      pusher.unsubscribe('db-updated');
-      clearInterval(interval);
-    };
-  }, [roomId, user]);
+    const es = new EventSource(`/api/sse?channel=rooms/${roomId}`);
+    es.onmessage = () => fetchRoomData();
+    es.onerror = () => {};
+    return () => es.close();
+  }, [roomId, user, authLoading]);
 
   useEffect(() => {
     if (room?.votes?.[uid]) {
@@ -95,7 +89,13 @@ export default function RoomPage() {
     }
   }, [room, uid]);
 
-  const computedIsHost = room?.createdByUid === uid || user?.isAdmin;
+  useEffect(() => {
+    if (room?.scheduleVotes?.[uid]) {
+      setMyScheduleVotes(room.scheduleVotes[uid].scheduleIds || []);
+    }
+  }, [room, uid]);
+
+  const computedIsHost = room?.isMyRoom || user?.isAdmin;
 
   useEffect(() => {
     if (room?.location && !currentLocation) {
@@ -173,13 +173,66 @@ export default function RoomPage() {
     const voteSet = new Set(myVotes);
     if (voteSet.has(menuId)) voteSet.delete(menuId);
     else voteSet.add(menuId);
-    
+
     const updatedVotes = Array.from(voteSet);
-    await fetch(`/api/db/rooms/${roomId}/votes/${uid}`, {
-      method: 'PUT',
-      body: JSON.stringify({ nickname, menuIds: updatedVotes })
-    });
+    const promises = [
+      fetch(`/api/db/rooms/${roomId}/votes/${uid}`, {
+        method: 'PUT',
+        body: JSON.stringify({ nickname, menuIds: updatedVotes })
+      })
+    ];
+
+    // 투표가 1개 이상이면 자동으로 참여 처리
+    if (updatedVotes.length > 0 && participation !== 'participate') {
+      promises.push(
+        fetch(`/api/db/rooms/${roomId}/participation/${uid}`, {
+          method: 'PUT',
+          body: JSON.stringify({ nickname, status: 'participate', reason: '', updatedAt: Date.now() })
+        })
+      );
+      setParticipation('participate');
+    }
+
+    await Promise.all(promises);
     setMyVotes(updatedVotes);
+    fetchRoomData();
+  };
+
+  const handleTitleSave = async () => {
+    const trimmed = titleInput.trim();
+    if (trimmed && trimmed !== room.roomName) {
+      await fetch(`/api/db/rooms/${roomId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ roomName: trimmed }),
+      });
+      fetchRoomData();
+    }
+    setEditingTitle(false);
+  };
+
+  const handleAddSchedule = async (schedule) => {
+    await fetch(`/api/db/rooms/${roomId}/schedules`, {
+      method: 'POST',
+      body: JSON.stringify({ ...schedule, addedBy: nickname }),
+    });
+    fetchRoomData();
+  };
+
+  const handleScheduleVote = async (scheduleId) => {
+    const voteSet = new Set(myScheduleVotes);
+    if (voteSet.has(scheduleId)) voteSet.delete(scheduleId);
+    else voteSet.add(scheduleId);
+    const updatedScheduleVotes = Array.from(voteSet);
+    await fetch(`/api/db/rooms/${roomId}/scheduleVotes/${uid}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nickname, scheduleIds: updatedScheduleVotes }),
+    });
+    setMyScheduleVotes(updatedScheduleVotes);
+    fetchRoomData();
+  };
+
+  const handleDeleteSchedule = async (scheduleId) => {
+    await fetch(`/api/db/rooms/${roomId}/schedules/${scheduleId}`, { method: 'DELETE' });
     fetchRoomData();
   };
 
@@ -190,16 +243,39 @@ export default function RoomPage() {
     Object.keys(menus).forEach(id => counts[id] = 0);
     Object.values(votes).forEach(v => (v.menuIds || []).forEach(id => { if (counts[id] !== undefined) counts[id]++; }));
 
-    const maxCount = Math.max(...Object.values(counts));
-    const topMenus = Object.keys(counts).filter(id => counts[id] === maxCount);
-    const winnerId = topMenus[Math.floor(Math.random() * topMenus.length)];
+    const maxCount = Math.max(0, ...Object.values(counts));
+    const topMenus = Object.keys(counts).filter(id => counts[id] === maxCount && maxCount > 0);
+    const winnerId = topMenus.length > 0 ? topMenus[Math.floor(Math.random() * topMenus.length)] : null;
+
+    const result = {
+      winnerId,
+      winnerName: winnerId ? menus[winnerId]?.name : null,
+      topMenus,
+      counts,
+      isTie: topMenus.length > 1,
+    };
+
+    if (room.roomType === 'hoesik') {
+      const schedules = room.schedules || {};
+      const scheduleVotes = room.scheduleVotes || {};
+      const scheduleCounts = {};
+      Object.keys(schedules).forEach(id => scheduleCounts[id] = 0);
+      Object.values(scheduleVotes).forEach(v => (v.scheduleIds || []).forEach(id => {
+        if (scheduleCounts[id] !== undefined) scheduleCounts[id]++;
+      }));
+      const maxSCount = Math.max(0, ...Object.values(scheduleCounts));
+      const topScheduleIds = Object.keys(scheduleCounts).filter(id => scheduleCounts[id] === maxSCount && maxSCount > 0);
+      if (topScheduleIds.length > 0) {
+        const winnerScheduleId = topScheduleIds[Math.floor(Math.random() * topScheduleIds.length)];
+        result.winnerScheduleId = winnerScheduleId;
+        result.winnerSchedule = schedules[winnerScheduleId];
+        result.scheduleCounts = scheduleCounts;
+      }
+    }
 
     await fetch(`/api/db/rooms/${roomId}`, {
       method: 'PATCH',
-      body: JSON.stringify({
-        status: 'closed',
-        result: { winnerId, winnerName: menus[winnerId].name, topMenus, counts, isTie: topMenus.length > 1 }
-      })
+      body: JSON.stringify({ status: 'closed', result }),
     });
     fetchRoomData();
   };
@@ -234,7 +310,26 @@ export default function RoomPage() {
     <div className="main-container">
       <div className="room-container">
         <header className="room-header">
-          <h1>{room.roomName || '오늘 뭐 먹지?'}</h1>
+          {editingTitle ? (
+            <input
+              className="room-title-input"
+              value={titleInput}
+              onChange={(e) => setTitleInput(e.target.value)}
+              onBlur={handleTitleSave}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleTitleSave(); if (e.key === 'Escape') setEditingTitle(false); }}
+              autoFocus
+            />
+          ) : (
+            <h1>
+              {room.roomName || '오늘 뭐 먹지?'}
+              {computedIsHost && (
+                <button
+                  className="title-edit-btn"
+                  onClick={() => { setTitleInput(room.roomName || ''); setEditingTitle(true); }}
+                >✏️</button>
+              )}
+            </h1>
+          )}
           <div className="room-code">
             <span>방 코드: <strong>{roomId}</strong></span>
             <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(window.location.href); alert('복사됨'); }}>링크 복사</button>
@@ -243,6 +338,22 @@ export default function RoomPage() {
         </header>
 
         <div className="room-body">
+          {room.roomType === 'hoesik' && (
+            <section className="room-section">
+              <h2 className="section-title">날짜·시간 투표</h2>
+              <ScheduleVote
+                schedules={room.schedules}
+                scheduleVotes={room.scheduleVotes}
+                myScheduleVotes={myScheduleVotes}
+                onVote={handleScheduleVote}
+                onDelete={handleDeleteSchedule}
+                status={room.status}
+              />
+              {room.status === 'voting' && (
+                <AddSchedule onAdd={handleAddSchedule} />
+              )}
+            </section>
+          )}
           <section className="room-section">
             <h2 className="section-title">투표</h2>
             <MenuList menus={room.menus} votes={room.votes} myVotes={myVotes} onVote={handleVote} onDelete={id => fetch(`/api/db/rooms/${roomId}/menus/${id}`, {method:'DELETE'}).then(fetchRoomData)} status={room.status} />
@@ -263,10 +374,85 @@ export default function RoomPage() {
               </>
             )}
             {room.status === 'voting' && (
-              <RestaurantSearch lat={currentLocation?.lat || room.location?.lat} lng={currentLocation?.lng || room.location?.lng} areaName={areaName} onAdd={handleAddRestaurant} onResults={setSearchMarkers} addedNames={new Set(Object.values(room?.menus || {}).map(m => m.name))} />
+              <RestaurantSearch
+                lat={currentLocation?.lat || room.location?.lat}
+                lng={currentLocation?.lng || room.location?.lng}
+                areaName={areaName}
+                onAdd={handleAddRestaurant}
+                onResults={setSearchMarkers}
+                addedNames={new Set(Object.values(room?.menus || {}).map(m => m.name))}
+                noRadius={room.roomType === 'hoesik'}
+              />
             )}
           </section>
         </div>
+
+        <section className="room-section participation-section">
+          <h2 className="section-title">{room.roomType === 'hoesik' ? '회식 참여 여부' : '점심 참여 여부'}</h2>
+          <div className="participation-flex">
+            <div className="participation-controls">
+              <div className="participation-selector">
+                <button
+                  className={`participation-btn ${participation === 'participate' ? 'active' : ''}`}
+                  onClick={() => handleParticipationChange('participate')}
+                >
+                  🙋‍♂️ 참여
+                </button>
+                <button
+                  className={`participation-btn decline ${participation === 'decline' ? 'active' : ''}`}
+                  onClick={() => handleParticipationChange('decline', participationReason)}
+                >
+                  🙅‍♀️ 미참여
+                </button>
+              </div>
+
+              {participation === 'decline' && (
+                <div className="decline-reason-input">
+                  <input
+                    type="text"
+                    placeholder="미참여 사유 입력"
+                    value={participationReason}
+                    onChange={(e) => setParticipationReason(e.target.value)}
+                  />
+                  <button
+                    className="reason-save-btn"
+                    onClick={() => handleParticipationChange('decline', participationReason, true)}
+                  >
+                    저장
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="participant-status-list">
+              <h3>참여자 현황</h3>
+              <div className="status-grid">
+                <div className="status-column">
+                  <h4>참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'participate').length})</h4>
+                  <ul>
+                    {Object.values(room?.participation || {})
+                      .filter(p => p.status === 'participate')
+                      .map((p, idx) => <li key={idx}>{p.nickname}</li>)}
+                  </ul>
+                </div>
+                <div className="status-column decline">
+                  <h4>미참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'decline').length})</h4>
+                  <ul>
+                    {Object.values(room?.participation || {})
+                      .filter(p => p.status === 'decline')
+                      .map((p, idx) => (
+                        <li key={idx}>
+                          <strong>{p.nickname}</strong>
+                          {p.reason && <span className="reason"> - {p.reason}</span>}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <Chat roomId={roomId} user={user} />
       </div>
     </div>
