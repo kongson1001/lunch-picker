@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '../../lib/db.js';
+import { getDb, toKST } from '../../lib/db.js';
 import { createSessionCookie } from '../../lib/auth.js';
 import crypto from 'crypto';
 
@@ -47,6 +47,10 @@ export async function POST(request) {
       return NextResponse.json({ error: '비밀번호가 틀렸습니다' }, { status: 401 });
     }
     const uid = guest.id;
+    await pool.query(
+      'INSERT INTO login_history (uid, nickname, type, logged_in_at, login_time) VALUES ($1, $2, $3, $4, $5)',
+      [uid, trimmedNickname, 'guest', Date.now(), toKST()]
+    );
     const response = NextResponse.json({ uid, nickname: trimmedNickname, isGuest: true });
     response.headers.set('Set-Cookie', createSessionCookie({ uid, isGuest: true }));
     return response;
@@ -80,6 +84,10 @@ export async function POST(request) {
     [uid, JSON.stringify(userData)]
   );
 
+  await pool.query(
+    'INSERT INTO login_history (uid, nickname, type, logged_in_at, login_time) VALUES ($1, $2, $3, $4, $5)',
+    [uid, trimmedNickname, 'guest', Date.now(), toKST()]
+  );
   const response = NextResponse.json({ uid, nickname: trimmedNickname, isGuest: true });
   response.headers.set('Set-Cookie', createSessionCookie({ uid, isGuest: true }));
   return response;
