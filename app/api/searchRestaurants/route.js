@@ -16,6 +16,7 @@ export async function GET(request) {
     return NextResponse.json({ error: 'KAKAO_REST_API_KEY not configured' }, { status: 500 });
   }
 
+  const noRadius = searchParams.get('noRadius') === '1';
   const params = new URLSearchParams({
     query,
     category_group_code: 'FD6',
@@ -25,17 +26,14 @@ export async function GET(request) {
   if (x && y) {
     params.append('x', x);
     params.append('y', y);
-    params.append('radius', '2000');
+    if (!noRadius) params.append('radius', '2000');
   }
 
   const url = `https://dapi.kakao.com/v2/local/search/keyword.json?${params}`;
-  const origin = request.headers.get('origin') || request.headers.get('referer') || 'https://lunch-picker.vercel.app';
-
   try {
     const response = await fetch(url, {
       headers: {
         Authorization: `KakaoAK ${apiKey}`,
-        KA: `sdk/2.7.4 os/web origin/${origin}`,
       },
     });
 

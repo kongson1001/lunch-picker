@@ -4,7 +4,7 @@ import { searchRestaurants } from '../utils/naverSearch';
 import { addFavorite, removeFavorite, getFavorites } from '../utils/favorites';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults, addedNames }) {
+export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults, addedNames, noRadius = false }) {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -34,7 +34,7 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
 
     setSearching(true);
     try {
-      const data = await searchRestaurants(trimmed, lat, lng);
+      const data = await searchRestaurants(trimmed, lat, lng, noRadius);
       setResults(data);
       if (onResults) onResults(data);
       setActiveTab('search');

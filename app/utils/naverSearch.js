@@ -47,12 +47,13 @@ export function reverseGeocodeNaver(lat, lng) {
   });
 }
 
-export async function searchRestaurants(query, lat, lng) {
+export async function searchRestaurants(query, lat, lng, noRadius = false) {
   const params = new URLSearchParams({ query });
   if (lat && lng) {
     params.append('x', lng);
     params.append('y', lat);
   }
+  if (noRadius) params.append('noRadius', '1');
 
   const url = `/api/searchRestaurants?${params}`;
 
