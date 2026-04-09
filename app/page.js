@@ -5,7 +5,7 @@ import { useAuth } from './contexts/AuthContext';
 import { createRoom, roomExists, hasRoomPassword, checkRoomPassword, onRoomList, deleteRoom, hasOtherParticipants } from './utils/room';
 
 export default function Home() {
-  const { user, login, loginAsAdmin, logout, loading: authLoading, updateProfile } = useAuth();
+  const { user, login, loginAsAdmin, logout, loading: authLoading, updateProfile, guestLogin, pendingKakaoUser, completeKakaoLogin } = useAuth();
   const [roomName, setRoomName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +24,25 @@ export default function Home() {
   const [adminId, setAdminId] = useState('');
   const [adminPw, setAdminPw] = useState('');
   const [adminClickCount, setAdminClickCount] = useState(0);
+  const [guestModal, setGuestModal] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestError, setGuestError] = useState('');
+  const [guestLoading, setGuestLoading] = useState(false);
+  const [kakaoNicknameModal, setKakaoNicknameModal] = useState(false);
+  const [kakaoNicknameInput, setKakaoNicknameInput] = useState('');
+  const [kakaoNicknameError, setKakaoNicknameError] = useState('');
+  const [kakaoNicknameLoading, setKakaoNicknameLoading] = useState(false);
+  const [profileError, setProfileError] = useState('');
   const router = useRouter();
+
+  useEffect(() => {
+    if (pendingKakaoUser) {
+      setKakaoNicknameInput(pendingKakaoUser.kakaoNickname);
+      setKakaoNicknameModal(true);
+    } else {
+      setKakaoNicknameModal(false);
+    }
+  }, [pendingKakaoUser]);
 
   useEffect(() => {
     if (!user) return;
@@ -50,6 +68,44 @@ export default function Home() {
     } catch (err) {
       console.error('카카오 로그인 에러:', err);
       setError(`카카오 로그인에 실패했습니다 (${err?.msg || err?.message || JSON.stringify(err)})`);
+    }
+  };
+
+  const handleGuestLogin = async () => {
+    const name = guestName.trim();
+    if (!name) { setGuestError('이름을 입력해주세요'); return; }
+    setGuestLoading(true);
+    setGuestError('');
+    try {
+      await guestLogin(name);
+      setGuestModal(false);
+      setGuestName('');
+    } catch (err) {
+      setGuestError(err.message || '비로그인 로그인 실패');
+    } finally {
+      setGuestLoading(false);
+    }
+  };
+
+  const handleKakaoNicknameSubmit = async () => {
+    const name = kakaoNicknameInput.trim();
+    if (!name) { setKakaoNicknameError('이름을 입력해주세요'); return; }
+    setKakaoNicknameLoading(true);
+    setKakaoNicknameError('');
+    try {
+      const checkRes = await fetch(`/api/checkNickname?nickname=${encodeURIComponent(name)}`);
+      const { available } = await checkRes.json();
+      if (!available) {
+        setKakaoNicknameError('사용이 불가능한 이름입니다');
+        setKakaoNicknameLoading(false);
+        return;
+      }
+      await completeKakaoLogin(name);
+      setKakaoNicknameModal(false);
+    } catch (err) {
+      setKakaoNicknameError(err.message || '오류가 발생했습니다');
+    } finally {
+      setKakaoNicknameLoading(false);
     }
   };
 
@@ -139,7 +195,7 @@ export default function Home() {
     setLoading(true);
     const success = await checkRoomPassword(passwordModal.roomId, modalInput);
     setLoading(false);
-    
+
     if (success) {
       sessionStorage.setItem(`room_auth_${passwordModal.roomId}`, 'true');
       setPasswordModal(null);
@@ -198,14 +254,20 @@ export default function Home() {
   const handleEditStart = () => {
     setEditNickname(user.nickname);
     setEditImage(user.profileImage || null);
+    setProfileError('');
     setEditing(true);
   };
 
-  const handleEditSave = () => {
+  const handleEditSave = async () => {
     const trimmed = editNickname.trim();
     if (!trimmed) return;
-    updateProfile(trimmed, editImage);
-    setEditing(false);
+    setProfileError('');
+    try {
+      await updateProfile(trimmed, editImage);
+      setEditing(false);
+    } catch (err) {
+      setProfileError(err.message || '저장에 실패했습니다');
+    }
   };
 
   const handleEditCancel = () => {
@@ -232,6 +294,9 @@ export default function Home() {
                 </svg>
                 카카오로 시작하기
               </button>
+              <button className="guest-login-btn" onClick={() => { setGuestModal(true); setGuestName(''); setGuestError(''); }}>
+                비로그인으로 시작
+              </button>
             </div>
           </>
         ) : (
@@ -239,17 +304,19 @@ export default function Home() {
             <div className="profile-card">
               {editing ? (
                 <>
-                  <label className="profile-image-label">
+                  <label className="profile-image-label" style={user?.isGuest ? { cursor: 'default' } : {}}>
                     {editImage
                       ? <img src={editImage} alt="" className="profile-image" />
                       : <div className="profile-image-placeholder">{editNickname[0] || '?'}</div>
                     }
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="profile-image-input"
-                      onChange={handleImageChange}
-                    />
+                    {!user?.isGuest && (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="profile-image-input"
+                        onChange={handleImageChange}
+                      />
+                    )}
                   </label>
                   <input
                     type="text"
@@ -261,6 +328,7 @@ export default function Home() {
                   />
                   <button className="profile-save-btn" onClick={handleEditSave}>저장</button>
                   <button className="logout-btn" onClick={handleEditCancel}>취소</button>
+                  {profileError && <p className="error" style={{ marginTop: '8px' }}>{profileError}</p>}
                 </>
               ) : (
                 <>
@@ -386,6 +454,57 @@ export default function Home() {
               </div>
             )}
           </>
+        )}
+
+        {guestModal && (
+          <div className="modal-overlay" onClick={() => setGuestModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <h3>비로그인으로 시작</h3>
+              <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>사용할 이름을 입력해주세요.</p>
+              <input
+                type="text"
+                placeholder="이름 입력"
+                value={guestName}
+                onChange={(e) => { setGuestName(e.target.value); setGuestError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
+                maxLength={20}
+                autoFocus
+              />
+              {guestError && <p className="error">{guestError}</p>}
+              <div className="modal-buttons">
+                <button className="secondary-btn" onClick={() => setGuestModal(false)}>취소</button>
+                <button className="primary-btn" onClick={handleGuestLogin} disabled={guestLoading}>
+                  {guestLoading ? '확인 중...' : '시작하기'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {kakaoNicknameModal && pendingKakaoUser && (
+          <div className="modal-overlay">
+            <div className="modal-content">
+              <h3>이름 설정</h3>
+              <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
+                이미 <strong>{pendingKakaoUser.kakaoNickname}</strong>이라는 사용자가 있습니다.<br />사용할 이름을 입력해주세요.
+              </p>
+              <input
+                type="text"
+                placeholder="이름 입력"
+                value={kakaoNicknameInput}
+                onChange={(e) => { setKakaoNicknameInput(e.target.value); setKakaoNicknameError(''); }}
+                onKeyDown={(e) => e.key === 'Enter' && handleKakaoNicknameSubmit()}
+                maxLength={20}
+                autoFocus
+              />
+              {kakaoNicknameError && <p className="error">{kakaoNicknameError}</p>}
+              <div className="modal-buttons">
+                <button className="primary-btn" onClick={handleKakaoNicknameSubmit} disabled={kakaoNicknameLoading}>
+                  {kakaoNicknameLoading ? '확인 중...' : '확인'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {passwordModal && (
