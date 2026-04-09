@@ -9,6 +9,7 @@ export default function Home() {
   const [roomName, setRoomName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('lunch');
   const [error, setError] = useState('');
   const [rooms, setRooms] = useState([]);
   const [usePassword, setUsePassword] = useState(false);
@@ -59,20 +60,34 @@ export default function Home() {
     setLoading(true);
     setError('');
     try {
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
+      let location = null;
+      if (activeTab === 'lunch') {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+          });
         });
-      });
-      const location = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      };
-      const roomId = await createRoom(user.nickname, location, roomName.trim(), user.uid, usePassword ? password.trim() : '');
+        location = { lat: position.coords.latitude, lng: position.coords.longitude };
+      } else {
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+            });
+          });
+          location = { lat: position.coords.latitude, lng: position.coords.longitude };
+        } catch {}
+      }
+      const roomId = await createRoom(user.nickname, location, roomName.trim(), user.uid, usePassword ? password.trim() : '', activeTab);
       router.push(`/room/${roomId}`);
-    } catch {
-      setError('위치 정보를 가져올 수 없습니다. 위치 권한을 허용해주세요.');
+    } catch (err) {
+      if (err?.code === 1) {
+        setError('위치 권한을 허용해주세요.');
+      } else {
+        setError(err?.message || '방 생성에 실패했습니다. 다시 로그인해주세요.');
+      }
     } finally {
       setLoading(false);
     }
@@ -100,7 +115,7 @@ export default function Home() {
   };
 
   const handleRoomClick = async (room) => {
-    if (room.createdByUid === user?.uid) {
+    if (room.isMyRoom) {
       sessionStorage.setItem(`room_auth_${room.id}`, 'true');
       router.push(`/room/${room.id}`);
       return;
@@ -169,6 +184,11 @@ export default function Home() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    if (file.size > 200 * 1024) {
+      alert('이미지 크기는 200KB 이하만 가능합니다.');
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => setEditImage(ev.target.result);
     reader.readAsDataURL(file);
@@ -254,6 +274,20 @@ export default function Home() {
               )}
             </div>
 
+            <div className="room-type-tabs">
+              <button
+                className={`room-type-tab ${activeTab === 'lunch' ? 'active' : ''}`}
+                onClick={() => setActiveTab('lunch')}
+              >
+                🍱 점심
+              </button>
+              <button
+                className={`room-type-tab ${activeTab === 'hoesik' ? 'active' : ''}`}
+                onClick={() => setActiveTab('hoesik')}
+              >
+                🍻 회식
+              </button>
+            </div>
             <div className="input-group">
               <input
                 type="text"
@@ -308,8 +342,10 @@ export default function Home() {
 
             {rooms.length > 0 && (
               <div className="room-list">
-                <h2>활성 방 목록</h2>
-                {rooms.map((room) => {
+                <h2>{activeTab === 'lunch' ? '점심 방 목록' : '회식 방 목록'}</h2>
+                {rooms
+                  .filter(room => (room.roomType ?? 'lunch') === activeTab)
+                  .map((room) => {
                   const menuCount = room.menus ? Object.keys(room.menus).length : 0;
                   const voteCount = room.votes ? Object.keys(room.votes).length : 0;
                   const isClosed = room.status === 'closed';
@@ -322,13 +358,14 @@ export default function Home() {
                       <div className="room-card-header">
                         <span className="room-card-code">
                           {room.hasPassword && <span className="room-lock-icon">🔒</span>}
+                          {room.roomType === 'hoesik' && <span className="hoesik-badge">🍻</span>}
                           {room.roomName || room.id}
                         </span>
                         <div className="room-card-header-right">
                           <span className={`room-status-badge ${isClosed ? 'closed' : 'voting'}`}>
                             {isClosed ? '마감' : '투표중'}
                           </span>
-                          {(room.createdByUid === user?.uid || user?.isAdmin) && (
+                          {(room.isMyRoom || user?.isAdmin) && (
                             <button
                               className="room-delete-btn"
                               onClick={(e) => handleDeleteRoom(e, room)}

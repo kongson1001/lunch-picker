@@ -385,6 +385,35 @@ body {
   font-size: 1.5rem;
   color: #e85d26;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.title-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 2px 4px;
+  opacity: 0.5;
+  line-height: 1;
+}
+.title-edit-btn:hover { opacity: 1; }
+
+.room-title-input {
+  font-size: 1.5rem;
+  color: #e85d26;
+  font-weight: bold;
+  text-align: center;
+  border: none;
+  border-bottom: 2px solid #e85d26;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  max-width: 320px;
+  margin-bottom: 8px;
 }
 
 .room-code {
@@ -1196,6 +1225,15 @@ body {
   border-bottom-left-radius: 4px;
 }
 
+.chat-image-preview {
+  display: block;
+  max-width: 240px;
+  max-height: 240px;
+  border-radius: 12px;
+  margin-top: 4px;
+  object-fit: contain;
+}
+
 .chat-message.mine .chat-bubble {
   background: linear-gradient(135deg, #ff7b54, #e85d26);
   color: white;
@@ -1842,4 +1880,34 @@ body {
   .participant-status-list {
     width: 100%;
   }
+}
+
+/* ── 방 타입 탭 ─────────────────────────────── */
+.room-type-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.room-type-tab {
+  flex: 1;
+  padding: 10px 0;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.room-type-tab.active {
+  border-color: #ff6b35;
+  color: #ff6b35;
+  background: #fff5f2;
+}
+
+.hoesik-badge {
+  margin-right: 4px;
 }
