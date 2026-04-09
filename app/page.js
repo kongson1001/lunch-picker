@@ -27,6 +27,7 @@ export default function Home() {
   const [guestModal, setGuestModal] = useState(false);
   const [guestName, setGuestName] = useState('');
   const [guestPassword, setGuestPassword] = useState('');
+  const [guestPasswordConfirm, setGuestPasswordConfirm] = useState('');
   const [guestError, setGuestError] = useState('');
   const [guestLoading, setGuestLoading] = useState(false);
   const [kakaoNicknameModal, setKakaoNicknameModal] = useState(false);
@@ -77,6 +78,7 @@ export default function Home() {
     const pw = guestPassword.trim();
     if (!name) { setGuestError('이름을 입력해주세요'); return; }
     if (!pw) { setGuestError('비밀번호를 입력해주세요'); return; }
+    if (pw !== guestPasswordConfirm.trim()) { setGuestError('비밀번호가 일치하지 않습니다'); return; }
     setGuestLoading(true);
     setGuestError('');
     try {
@@ -84,6 +86,7 @@ export default function Home() {
       setGuestModal(false);
       setGuestName('');
       setGuestPassword('');
+      setGuestPasswordConfirm('');
     } catch (err) {
       setGuestError(err.message || '비로그인 로그인 실패');
     } finally {
@@ -298,7 +301,7 @@ export default function Home() {
                 </svg>
                 카카오로 시작하기
               </button>
-              <button className="guest-login-btn" onClick={() => { setGuestModal(true); setGuestName(''); setGuestPassword(''); setGuestError(''); }}>
+              <button className="guest-login-btn" onClick={() => { setGuestModal(true); setGuestName(''); setGuestPassword(''); setGuestPasswordConfirm(''); setGuestError(''); }}>
                 비로그인으로 시작
               </button>
             </div>
@@ -483,6 +486,14 @@ export default function Home() {
                   placeholder="비밀번호 입력"
                   value={guestPassword}
                   onChange={(e) => { setGuestPassword(e.target.value); setGuestError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
+                  maxLength={30}
+                />
+                <input
+                  type="password"
+                  placeholder="비밀번호 확인"
+                  value={guestPasswordConfirm}
+                  onChange={(e) => { setGuestPasswordConfirm(e.target.value); setGuestError(''); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
                   maxLength={30}
                 />
