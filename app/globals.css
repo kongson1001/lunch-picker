@@ -1911,3 +1911,66 @@ body {
 .hoesik-badge {
   margin-right: 4px;
 }
+
+/* ── AddSchedule ────────────────────────────── */
+.add-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 14px;
+  background: #f9f9f9;
+  border-radius: 10px;
+}
+
+.add-schedule-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add-schedule input[type="date"] {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.add-schedule-radio label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.add-schedule-time select {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.schedule-preview {
+  font-size: 14px;
+  color: #ff6b35;
+  font-weight: 600;
+  margin: 0;
+}
+
+.schedule-add-btn {
+  padding: 10px;
+  background: #ff6b35;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.schedule-add-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
