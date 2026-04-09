@@ -88,7 +88,7 @@ export default function Home() {
       setGuestPassword('');
       setGuestPasswordConfirm('');
     } catch (err) {
-      setGuestError(err.message || '비로그인 로그인 실패');
+      setGuestError(err.message || '비회원 로그인 실패');
     } finally {
       setGuestLoading(false);
     }
@@ -302,7 +302,7 @@ export default function Home() {
                 카카오로 시작하기
               </button>
               <button className="guest-login-btn" onClick={() => { setGuestModal(true); setGuestName(''); setGuestPassword(''); setGuestPasswordConfirm(''); setGuestError(''); }}>
-                비로그인으로 시작
+                비회원 로그인
               </button>
             </div>
           </>
@@ -466,7 +466,7 @@ export default function Home() {
         {guestModal && (
           <div className="modal-overlay" onClick={() => setGuestModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3>비로그인으로 시작</h3>
+              <h3>비회원 로그인</h3>
               <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
                 이름과 비밀번호를 입력하세요.<br />
                 처음이면 계정이 만들어지고, 같은 이름으로 돌아오면 기존 데이터를 이어서 사용할 수 있습니다.
