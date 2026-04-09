@@ -26,6 +26,7 @@ export default function Home() {
   const [adminClickCount, setAdminClickCount] = useState(0);
   const [guestModal, setGuestModal] = useState(false);
   const [guestName, setGuestName] = useState('');
+  const [guestPassword, setGuestPassword] = useState('');
   const [guestError, setGuestError] = useState('');
   const [guestLoading, setGuestLoading] = useState(false);
   const [kakaoNicknameModal, setKakaoNicknameModal] = useState(false);
@@ -73,13 +74,16 @@ export default function Home() {
 
   const handleGuestLogin = async () => {
     const name = guestName.trim();
+    const pw = guestPassword.trim();
     if (!name) { setGuestError('이름을 입력해주세요'); return; }
+    if (!pw) { setGuestError('비밀번호를 입력해주세요'); return; }
     setGuestLoading(true);
     setGuestError('');
     try {
-      await guestLogin(name);
+      await guestLogin(name, pw);
       setGuestModal(false);
       setGuestName('');
+      setGuestPassword('');
     } catch (err) {
       setGuestError(err.message || '비로그인 로그인 실패');
     } finally {
@@ -294,7 +298,7 @@ export default function Home() {
                 </svg>
                 카카오로 시작하기
               </button>
-              <button className="guest-login-btn" onClick={() => { setGuestModal(true); setGuestName(''); setGuestError(''); }}>
+              <button className="guest-login-btn" onClick={() => { setGuestModal(true); setGuestName(''); setGuestPassword(''); setGuestError(''); }}>
                 비로그인으로 시작
               </button>
             </div>
@@ -460,16 +464,29 @@ export default function Home() {
           <div className="modal-overlay" onClick={() => setGuestModal(false)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <h3>비로그인으로 시작</h3>
-              <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>사용할 이름을 입력해주세요.</p>
-              <input
-                type="text"
-                placeholder="이름 입력"
-                value={guestName}
-                onChange={(e) => { setGuestName(e.target.value); setGuestError(''); }}
-                onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
-                maxLength={20}
-                autoFocus
-              />
+              <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
+                이름과 비밀번호를 입력하세요.<br />
+                처음이면 계정이 만들어지고, 같은 이름으로 돌아오면 기존 데이터를 이어서 사용할 수 있습니다.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <input
+                  type="text"
+                  placeholder="이름 입력"
+                  value={guestName}
+                  onChange={(e) => { setGuestName(e.target.value); setGuestError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
+                  maxLength={20}
+                  autoFocus
+                />
+                <input
+                  type="password"
+                  placeholder="비밀번호 입력"
+                  value={guestPassword}
+                  onChange={(e) => { setGuestPassword(e.target.value); setGuestError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
+                  maxLength={30}
+                />
+              </div>
               {guestError && <p className="error">{guestError}</p>}
               <div className="modal-buttons">
                 <button className="secondary-btn" onClick={() => setGuestModal(false)}>취소</button>

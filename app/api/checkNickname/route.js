@@ -12,7 +12,7 @@ export async function GET(request) {
 
   const pool = await getDb();
   const { rows } = await pool.query(
-    `SELECT id FROM users WHERE data->>'nickname' = $1 AND id != $2`,
+    `SELECT id FROM users WHERE data->'profile'->>'nickname' = $1 AND id != $2`,
     [nickname.trim(), excludeUid]
   );
 

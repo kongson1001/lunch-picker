@@ -133,20 +133,11 @@ export function AuthProvider({ children }) {
     setPendingKakaoUser(null);
   };
 
-  const guestLogin = async (nickname) => {
-    // 클라이언트 사전 검사
-    const checkRes = await fetch(
-      `/api/checkNickname?nickname=${encodeURIComponent(nickname)}`
-    );
-    const { available } = await checkRes.json();
-    if (!available) {
-      throw new Error('사용이 불가능한 이름입니다');
-    }
-
+  const guestLogin = async (nickname, password) => {
     const res = await fetch('/api/guestLogin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname }),
+      body: JSON.stringify({ nickname, password }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -195,12 +186,14 @@ export function AuthProvider({ children }) {
         }
       }
 
-      if (!user.isGuest) {
-        await fetch(`/api/db/users/${user.uid}/profile`, {
-          method: 'PATCH',
-          body: JSON.stringify({ nickname, profileImage, updatedAt: Date.now() })
-        });
-      }
+      await fetch(`/api/db/users/${user.uid}/profile`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          nickname,
+          profileImage: user.isGuest ? null : profileImage,
+          updatedAt: Date.now()
+        })
+      });
 
       const updated = { ...user, nickname, profileImage, isAdmin: user.isAdmin };
       setUser(updated);
