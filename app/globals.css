@@ -2050,20 +2050,3 @@ body {
   color: #333;
 }
 
-/* ── 회식 하단 2열 레이아웃 ─────────────────── */
-.hoesik-bottom-row {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-}
-
-.hoesik-bottom-row > section {
-  flex: 1;
-  min-width: 0;
-}
-
-@media (max-width: 700px) {
-  .hoesik-bottom-row {
-    flex-direction: column;
-  }
-}

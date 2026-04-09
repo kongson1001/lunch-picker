@@ -371,24 +371,23 @@ export default function RoomPage() {
           </section>
         </div>
 
-        <div className={room.roomType === 'hoesik' ? 'hoesik-bottom-row' : ''}>
-          {room.roomType === 'hoesik' && (
-            <section className="room-section">
-              <h2 className="section-title">날짜·시간 투표</h2>
-              <ScheduleVote
-                schedules={room.schedules}
-                scheduleVotes={room.scheduleVotes}
-                myScheduleVotes={myScheduleVotes}
-                onVote={handleScheduleVote}
-                onDelete={handleDeleteSchedule}
-                status={room.status}
-              />
-              {room.status === 'voting' && (
-                <AddSchedule onAdd={handleAddSchedule} />
-              )}
-            </section>
-          )}
-          <section className="room-section participation-section">
+        {room.roomType === 'hoesik' && (
+          <section className="room-section">
+            <h2 className="section-title">날짜·시간 투표</h2>
+            <ScheduleVote
+              schedules={room.schedules}
+              scheduleVotes={room.scheduleVotes}
+              myScheduleVotes={myScheduleVotes}
+              onVote={handleScheduleVote}
+              onDelete={handleDeleteSchedule}
+              status={room.status}
+            />
+            {room.status === 'voting' && (
+              <AddSchedule onAdd={handleAddSchedule} />
+            )}
+          </section>
+        )}
+        <section className="room-section participation-section">
           <h2 className="section-title">{room.roomType === 'hoesik' ? '회식 참여 여부' : '점심 참여 여부'}</h2>
           <div className="participation-flex">
             <div className="participation-controls">
@@ -453,7 +452,6 @@ export default function RoomPage() {
             </div>
           </div>
         </section>
-        </div>
 
         <Chat roomId={roomId} user={user} />
       </div>
