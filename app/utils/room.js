@@ -108,6 +108,7 @@ export function onRoomList(callback) {
   const fetchList = async () => {
     try {
       const res = await fetch('/api/db/rooms');
+      if (!res.ok) { callback([]); return; }
       const data = await res.json();
       if (!data) { callback([]); return; }
       const rooms = Object.entries(data)

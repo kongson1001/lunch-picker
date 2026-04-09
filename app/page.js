@@ -27,9 +27,10 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!user) return;
     const unsubscribe = onRoomList(setRooms);
     return () => unsubscribe();
-  }, []);
+  }, [user]);
 
   const handleTitleClick = () => {
     setAdminClickCount((prev) => {
