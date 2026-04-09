@@ -133,11 +133,11 @@ export function AuthProvider({ children }) {
     setPendingKakaoUser(null);
   };
 
-  const guestLogin = async (nickname, password) => {
+  const guestLogin = async (nickname, password, mode = 'register') => {
     const res = await fetch('/api/guestLogin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname, password }),
+      body: JSON.stringify({ nickname, password, mode }),
     });
     const data = await res.json();
     if (!res.ok) {

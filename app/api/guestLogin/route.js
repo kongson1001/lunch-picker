@@ -16,7 +16,8 @@ function verifyPassword(password, stored) {
 }
 
 export async function POST(request) {
-  const { nickname, password } = await request.json();
+  const { nickname, password, mode } = await request.json();
+  // mode: 'register' | 'login'
 
   if (!nickname?.trim()) {
     return NextResponse.json({ error: '이름을 입력해주세요' }, { status: 400 });
@@ -28,14 +29,18 @@ export async function POST(request) {
   const trimmedNickname = nickname.trim();
   const pool = await getDb();
 
-  // 같은 닉네임의 기존 게스트 계정 조회
+  // 기존 게스트 계정 조회
   const { rows: guestRows } = await pool.query(
     `SELECT id, data FROM users WHERE data->'profile'->>'nickname' = $1 AND data->>'isGuest' = 'true'`,
     [trimmedNickname]
   );
 
   if (guestRows.length > 0) {
-    // 재방문 — 비밀번호 검증
+    // 계정 있음 — 가입 모드면 이름 중복 오류
+    if (mode === 'register') {
+      return NextResponse.json({ error: '사용이 불가능한 이름입니다' }, { status: 409 });
+    }
+    // 로그인 모드 — 비밀번호 검증
     const guest = guestRows[0];
     const passwordHash = guest.data.passwordHash;
     if (!passwordHash || !verifyPassword(password, passwordHash)) {
@@ -47,7 +52,12 @@ export async function POST(request) {
     return response;
   }
 
-  // 신규 게스트 — 닉네임 중복 검사 (카카오 유저 포함)
+  // 계정 없음 — 로그인 모드면 오류
+  if (mode === 'login') {
+    return NextResponse.json({ error: '등록된 계정이 없습니다' }, { status: 404 });
+  }
+
+  // 가입 모드 — 카카오 유저 포함 닉네임 중복 검사
   const { rows: existing } = await pool.query(
     `SELECT id FROM users WHERE data->'profile'->>'nickname' = $1`,
     [trimmedNickname]

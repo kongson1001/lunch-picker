@@ -24,7 +24,7 @@ export default function Home() {
   const [adminId, setAdminId] = useState('');
   const [adminPw, setAdminPw] = useState('');
   const [adminClickCount, setAdminClickCount] = useState(0);
-  const [guestModal, setGuestModal] = useState(false);
+  const [guestModal, setGuestModal] = useState(null); // 'register' | 'login' | null
   const [guestName, setGuestName] = useState('');
   const [guestPassword, setGuestPassword] = useState('');
   const [guestPasswordConfirm, setGuestPasswordConfirm] = useState('');
@@ -78,17 +78,20 @@ export default function Home() {
     const pw = guestPassword.trim();
     if (!name) { setGuestError('이름을 입력해주세요'); return; }
     if (!pw) { setGuestError('비밀번호를 입력해주세요'); return; }
-    if (pw !== guestPasswordConfirm.trim()) { setGuestError('비밀번호가 일치하지 않습니다'); return; }
+    if (guestModal === 'register' && pw !== guestPasswordConfirm.trim()) {
+      setGuestError('비밀번호가 일치하지 않습니다');
+      return;
+    }
     setGuestLoading(true);
     setGuestError('');
     try {
-      await guestLogin(name, pw);
-      setGuestModal(false);
+      await guestLogin(name, pw, guestModal);
+      setGuestModal(null);
       setGuestName('');
       setGuestPassword('');
       setGuestPasswordConfirm('');
     } catch (err) {
-      setGuestError(err.message || '비회원 로그인 실패');
+      setGuestError(err.message || '실패했습니다');
     } finally {
       setGuestLoading(false);
     }
@@ -301,7 +304,10 @@ export default function Home() {
                 </svg>
                 카카오로 시작하기
               </button>
-              <button className="guest-login-btn" onClick={() => { setGuestModal(true); setGuestName(''); setGuestPassword(''); setGuestPasswordConfirm(''); setGuestError(''); }}>
+              <button className="guest-login-btn" onClick={() => { setGuestModal('register'); setGuestName(''); setGuestPassword(''); setGuestPasswordConfirm(''); setGuestError(''); }}>
+                비회원 가입
+              </button>
+              <button className="guest-login-btn" onClick={() => { setGuestModal('login'); setGuestName(''); setGuestPassword(''); setGuestError(''); }}>
                 비회원 로그인
               </button>
             </div>
@@ -464,13 +470,15 @@ export default function Home() {
         )}
 
         {guestModal && (
-          <div className="modal-overlay" onClick={() => setGuestModal(false)}>
+          <div className="modal-overlay" onClick={() => setGuestModal(null)}>
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <h3>비회원 로그인</h3>
-              <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
-                이름과 비밀번호를 입력하세요.<br />
-                처음이면 계정이 만들어지고, 같은 이름으로 돌아오면 기존 데이터를 이어서 사용할 수 있습니다.
-              </p>
+              <h3>{guestModal === 'register' ? '비회원 가입' : '비회원 로그인'}</h3>
+              {guestModal === 'register' && (
+                <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
+                  이름과 비밀번호를 설정하세요.<br />
+                  다음에 같은 이름+비밀번호로 로그인하면 기존 데이터를 이어서 사용할 수 있습니다.
+                </p>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <input
                   type="text"
@@ -489,20 +497,22 @@ export default function Home() {
                   onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
                   maxLength={30}
                 />
-                <input
-                  type="password"
-                  placeholder="비밀번호 확인"
-                  value={guestPasswordConfirm}
-                  onChange={(e) => { setGuestPasswordConfirm(e.target.value); setGuestError(''); }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
-                  maxLength={30}
-                />
+                {guestModal === 'register' && (
+                  <input
+                    type="password"
+                    placeholder="비밀번호 확인"
+                    value={guestPasswordConfirm}
+                    onChange={(e) => { setGuestPasswordConfirm(e.target.value); setGuestError(''); }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleGuestLogin()}
+                    maxLength={30}
+                  />
+                )}
               </div>
               {guestError && <p className="error">{guestError}</p>}
               <div className="modal-buttons">
-                <button className="secondary-btn" onClick={() => setGuestModal(false)}>취소</button>
+                <button className="secondary-btn" onClick={() => setGuestModal(null)}>취소</button>
                 <button className="primary-btn" onClick={handleGuestLogin} disabled={guestLoading}>
-                  {guestLoading ? '확인 중...' : '시작하기'}
+                  {guestLoading ? '확인 중...' : (guestModal === 'register' ? '가입하기' : '로그인')}
                 </button>
               </div>
             </div>
