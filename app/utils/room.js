@@ -9,28 +9,36 @@ export function generateRoomId() {
   return result;
 }
 
-export async function createRoom(nickname, location, roomName, uid, password = '') {
+export async function createRoom(nickname, location, roomName, uid, password = '', roomType = 'lunch') {
   const roomId = generateRoomId();
   const roomData = {
     createdAt: Date.now(),
     createdBy: nickname,
     createdByUid: uid || '',
     roomName: roomName || '',
+    roomType,
     status: 'voting',
     location: location,
     menus: {},
     votes: {},
+    schedules: {},
+    scheduleVotes: {},
     result: null,
   };
   if (password) {
     roomData.password = password;
   }
-  
-  await fetch(`/api/db/rooms/${roomId}`, {
+
+  const res = await fetch(`/api/db/rooms/${roomId}`, {
     method: 'PUT',
     body: JSON.stringify(roomData)
   });
-  
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || '방 생성에 실패했습니다');
+  }
+
   return roomId;
 }
 
@@ -101,15 +109,10 @@ export function onRoomList(callback) {
     try {
       const res = await fetch('/api/db/rooms');
       const data = await res.json();
-      if (!data) {
-        callback([]);
-        return;
-      }
-      const rooms = Object.entries(data).map(([id, room]) => ({
-        id,
-        ...room,
-        hasPassword: !!room.password
-      }));
+      if (!data) { callback([]); return; }
+      const rooms = Object.entries(data)
+        .map(([id, room]) => ({ id, ...room, hasPassword: !!room.password }))
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       callback(rooms);
     } catch (err) {
       console.error('방 목록 불러오기 실패:', err);
@@ -117,6 +120,8 @@ export function onRoomList(callback) {
   };
 
   fetchList();
-  const interval = setInterval(fetchList, 5000);
-  return () => clearInterval(interval);
+  const es = new EventSource('/api/sse?channel=rooms');
+  es.onmessage = () => fetchList();
+  es.onerror = () => {};
+  return () => es.close();
 }
