@@ -1,4 +1,16 @@
 'use client';
+
+function formatSchedule(schedule) {
+  if (!schedule?.date) return '';
+  const d = new Date(schedule.date + 'T00:00:00');
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const dateStr = `${d.getMonth() + 1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+  if (!schedule.hasTime) return dateStr;
+  const h = String(schedule.hour).padStart(2, '0');
+  const m = String(schedule.minute).padStart(2, '0');
+  return `${dateStr} ${h}:${m}`;
+}
+
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Roulette from '../../../components/Roulette';
@@ -60,9 +72,15 @@ export default function ResultPage() {
         )}
         {(!isTie || rouletteFinished) && (
           <div className="winner-section">
-            <h2>오늘의 점심</h2>
+            <h2>{room.roomType === 'hoesik' ? '오늘의 회식' : '오늘의 점심'}</h2>
             <div className="winner-name">{winnerName}</div>
             {isTie && <p className="tie-note">동률 추첨으로 선정되었습니다</p>}
+            {room.roomType === 'hoesik' && result.winnerSchedule && (
+              <div className="winner-schedule">
+                <span className="winner-schedule-label">확정 일정</span>
+                <div className="winner-schedule-date">{formatSchedule(result.winnerSchedule)}</div>
+              </div>
+            )}
           </div>
         )}
         <div className="vote-chart">

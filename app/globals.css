@@ -2025,3 +2025,27 @@ body {
   gap: 8px;
   flex-shrink: 0;
 }
+
+/* ── 결과 페이지 회식 일정 ──────────────────── */
+.winner-schedule {
+  margin-top: 16px;
+  padding: 14px 18px;
+  background: #fff5f2;
+  border: 2px solid #ff6b35;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.winner-schedule-label {
+  display: block;
+  font-size: 13px;
+  color: #ff6b35;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.winner-schedule-date {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
