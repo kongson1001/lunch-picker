@@ -73,6 +73,12 @@ export default function Home() {
     }
   };
 
+  const getDeviceGuestAccounts = () => {
+    try {
+      return JSON.parse(localStorage.getItem('device_guest_accounts') || '[]');
+    } catch { return []; }
+  };
+
   const handleGuestLogin = async () => {
     const name = guestName.trim();
     const pw = guestPassword.trim();
@@ -82,10 +88,19 @@ export default function Home() {
       setGuestError('비밀번호가 일치하지 않습니다');
       return;
     }
+    if (guestModal === 'register' && getDeviceGuestAccounts().length >= 2) {
+      setGuestError('이 기기에서 만들 수 있는 임시회원 계정은 최대 2개입니다');
+      return;
+    }
     setGuestLoading(true);
     setGuestError('');
     try {
-      await guestLogin(name, pw, guestModal);
+      const result = await guestLogin(name, pw, guestModal);
+      if (guestModal === 'register') {
+        const accounts = getDeviceGuestAccounts();
+        accounts.push(result.uid);
+        localStorage.setItem('device_guest_accounts', JSON.stringify(accounts));
+      }
       setGuestModal(null);
       setGuestName('');
       setGuestPassword('');
