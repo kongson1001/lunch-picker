@@ -388,7 +388,7 @@ export default function RoomPage() {
           </>
         );
       case 'chat':
-        return <Chat roomId={roomId} user={user} />;
+        return null;
       case 'attend':
         return (
           <>
@@ -530,7 +530,7 @@ export default function RoomPage() {
       {/* 본문 */}
       <div className="room-map-body">
         {/* 데스크탑 왼쪽 패널 */}
-        <aside className="room-sidebar">
+        <aside className="room-sidebar" style={{ visibility: activePanel === 'chat' ? 'hidden' : 'visible' }}>
           <div className="room-sidebar-header">
             <span>{activeInfo.icon}</span>
             <span>{activeInfo.label}</span>
@@ -567,6 +567,13 @@ export default function RoomPage() {
           >
             📍 {locating ? '가져오는 중...' : '현재위치'}
           </button>
+
+          {/* 채팅: 단일 인스턴스 (사이드바+BottomSheet 모두 참조) */}
+          {activePanel === 'chat' && (
+            <div className="room-chat-overlay">
+              <Chat roomId={roomId} user={user} />
+            </div>
+          )}
 
           {/* 모바일: 하단 드래그 시트 */}
           <BottomSheet
