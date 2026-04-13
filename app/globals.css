@@ -841,6 +841,28 @@ body {
 /* ===== Restaurant Search ===== */
 .restaurant-search {
   margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.search-clear-btn {
+  width: 100%;
+  padding: 7px;
+  margin-bottom: 8px;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #888;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.search-clear-btn:hover {
+  background: #ffe8d6;
+  color: #e85d26;
+  border-color: #e85d26;
 }
 
 .search-bar {
@@ -2377,4 +2399,23 @@ body:has(.room-map-layout) {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+/* 패널 컴포넌트들이 사이드바/시트 높이 꽉 채우기 */
+.room-sidebar-content .restaurant-search,
+.bottom-sheet-content .restaurant-search {
+  margin-bottom: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.room-sidebar-content .restaurant-search .search-results,
+.bottom-sheet-content .restaurant-search .search-results,
+.room-sidebar-content .restaurant-search .favorites-list,
+.bottom-sheet-content .restaurant-search .favorites-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 0;
 }

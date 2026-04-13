@@ -46,6 +46,12 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
     }
   };
 
+  const handleClear = () => {
+    setQuery('');
+    setResults([]);
+    if (onResults) onResults([]);
+  };
+
   const toggleFavorite = async (e, restaurant) => {
     e.preventDefault();
     e.stopPropagation();
@@ -67,7 +73,9 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
           address: restaurant.address,
           roadAddress: restaurant.roadAddress,
           mapx: restaurant.mapx,
-          mapy: restaurant.mapy
+          mapy: restaurant.mapy,
+          lat: restaurant.lat,
+          lng: restaurant.lng,
         });
       }
       await loadFavorites();
@@ -118,6 +126,11 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
               {searching ? '검색 중...' : '검색'}
             </button>
           </div>
+          {results.length > 0 && (
+            <button className="search-clear-btn" onClick={handleClear}>
+              ✕ 검색 초기화
+            </button>
+          )}
 
           {areaName && (
             <p className="search-area-info">검색 지역: {areaName}</p>
