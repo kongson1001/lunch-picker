@@ -19,7 +19,6 @@ export async function GET(request) {
   const noRadius = searchParams.get('noRadius') === '1';
   const params = new URLSearchParams({
     query,
-    category_group_code: 'FD6',
     size: '15',
     sort: 'accuracy',
   });
