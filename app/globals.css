@@ -2396,3 +2396,10 @@ body:has(.room-map-layout) {
     z-index: 21;
   }
 }
+
+/* 채팅 패널 활성 시 모바일에서 BottomSheet 숨김 */
+@media (max-width: 767px) {
+  .bottom-sheet-chat-hidden .bottom-sheet {
+    display: none !important;
+  }
+}

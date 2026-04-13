@@ -83,7 +83,7 @@ export default function NaverMap({ lat, lng, markers = [], menuMarkers = [], onR
         searchMarkersRef.current.push(marker);
       }
     });
-  }, [markers]);
+  }, [markers, sdkReady]);
 
   useEffect(() => {
     if (!mapInstanceRef.current) return;
@@ -112,7 +112,7 @@ export default function NaverMap({ lat, lng, markers = [], menuMarkers = [], onR
         menuMarkersRef.current.push(marker);
       }
     });
-  }, [menuMarkers]);
+  }, [menuMarkers, sdkReady]);
 
   return (
     <div className="map-container" style={{ height: '100%' }}>

@@ -576,12 +576,14 @@ export default function RoomPage() {
           )}
 
           {/* 모바일: 하단 드래그 시트 */}
-          <BottomSheet
-            ref={bottomSheetRef}
-            header={<><span>{activeInfo.icon}</span><span>{activeInfo.label}</span></>}
-          >
-            {renderPanelContent()}
-          </BottomSheet>
+          <div className={activePanel === 'chat' ? 'bottom-sheet-chat-hidden' : ''}>
+            <BottomSheet
+              ref={bottomSheetRef}
+              header={<><span>{activeInfo.icon}</span><span>{activeInfo.label}</span></>}
+            >
+              {renderPanelContent()}
+            </BottomSheet>
+          </div>
         </div>
       </div>
 
