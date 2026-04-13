@@ -18,11 +18,12 @@ async function loadNaverMapsSDK() {
   });
 }
 
-export default function NaverMap({ lat, lng, markers = [], onReady }) {
+export default function NaverMap({ lat, lng, markers = [], menuMarkers = [], onReady }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const currentMarkerRef = useRef(null);
   const searchMarkersRef = useRef([]);
+  const menuMarkersRef = useRef([]);
   const [sdkReady, setSdkReady] = useState(false);
 
   useEffect(() => {
@@ -84,9 +85,38 @@ export default function NaverMap({ lat, lng, markers = [], onReady }) {
     });
   }, [markers]);
 
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    menuMarkersRef.current.forEach((m) => m.setMap(null));
+    menuMarkersRef.current = [];
+    menuMarkers.forEach((m, index) => {
+      if (m.lat && m.lng) {
+        const num = index + 1;
+        const marker = new window.naver.maps.Marker({
+          position: new window.naver.maps.LatLng(m.lat, m.lng),
+          map: mapInstanceRef.current,
+          icon: {
+            content: `
+              <div style="display:flex;flex-direction:column;align-items:center;cursor:pointer;">
+                <div style="background:white;border:1px solid #ddd;border-radius:6px;padding:3px 7px;font-size:11px;font-weight:600;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 4px rgba(0,0,0,0.2);margin-bottom:4px;color:#333;">${num}. ${m.name}</div>
+                <div style="background:#1976d2;color:white;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;box-shadow:0 2px 4px rgba(0,0,0,0.3);">${num}</div>
+                <div style="width:2px;height:6px;background:#1976d2;"></div>
+              </div>`,
+            anchor: new window.naver.maps.Point(11, 54),
+          },
+        });
+        window.naver.maps.Event.addListener(marker, 'click', () => {
+          const query = encodeURIComponent(m.name);
+          window.open(`https://map.naver.com/v5/search/${query}`, '_blank');
+        });
+        menuMarkersRef.current.push(marker);
+      }
+    });
+  }, [menuMarkers]);
+
   return (
-    <div className="map-container">
-      <div ref={mapRef} style={{ width: '100%', height: '300px' }} />
+    <div className="map-container" style={{ height: '100%' }}>
+      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
     </div>
   );
 }
