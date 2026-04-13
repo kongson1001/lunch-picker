@@ -218,25 +218,22 @@ export default function RoomPage() {
     else voteSet.add(menuId);
 
     const updatedVotes = Array.from(voteSet);
-    const promises = [
-      fetch(`/api/db/rooms/${roomId}/votes/${uid}`, {
-        method: 'PUT',
-        body: JSON.stringify({ nickname, menuIds: updatedVotes, isGuest: user?.isGuest || false })
-      })
-    ];
 
-    // 투표가 1개 이상이면 자동으로 참여 처리
+    // votes 먼저 저장
+    await fetch(`/api/db/rooms/${roomId}/votes/${uid}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nickname, menuIds: updatedVotes, isGuest: user?.isGuest || false })
+    });
+
+    // 투표가 1개 이상이면 votes 저장 후 순차적으로 참여 처리 (동시 실행 시 race condition 방지)
     if (updatedVotes.length > 0 && participation !== 'participate') {
-      promises.push(
-        fetch(`/api/db/rooms/${roomId}/participation/${uid}`, {
-          method: 'PUT',
-          body: JSON.stringify({ nickname, status: 'participate', reason: '', updatedAt: Date.now(), isGuest: user?.isGuest || false })
-        })
-      );
+      await fetch(`/api/db/rooms/${roomId}/participation/${uid}`, {
+        method: 'PUT',
+        body: JSON.stringify({ nickname, status: 'participate', reason: '', updatedAt: Date.now(), isGuest: user?.isGuest || false })
+      });
       setParticipation('participate');
     }
 
-    await Promise.all(promises);
     setMyVotes(updatedVotes);
     fetchRoomData();
   };
