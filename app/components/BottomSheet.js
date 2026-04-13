@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useEffect, useCallback, forwardRef } from 'react';
+import { useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 
 const SNAP_HALF = 0.5;
 const SNAP_MAX = 0.85;
@@ -7,21 +7,18 @@ const SNAP_MIN_PX = 120;
 
 const BottomSheet = forwardRef(function BottomSheet({ children, header }, ref) {
   const sheetRef = useRef(null);
+  const handleAreaRef = useRef(null);
   const dragState = useRef(null);
 
-  // ref를 외부에서 접근 가능하게 (resetBottomSheet에서 사용)
-  useEffect(() => {
-    if (ref && sheetRef.current) {
-      if (typeof ref === 'function') ref(sheetRef.current);
-      else ref.current = sheetRef.current;
-    }
-  }, [ref]);
+  // 외부 ref를 sheetRef DOM 요소로 연결
+  useImperativeHandle(ref, () => sheetRef.current, []);
 
   const setHeight = useCallback((h) => {
     if (!sheetRef.current) return;
     sheetRef.current.style.height = `${h}px`;
   }, []);
 
+  // 초기 높이 설정 + 리사이즈 대응
   useEffect(() => {
     const init = () => {
       const vh = window.innerHeight;
@@ -37,19 +34,6 @@ const BottomSheet = forwardRef(function BottomSheet({ children, header }, ref) {
     dragState.current = { startY: touch.clientY, startH: sheetRef.current?.offsetHeight || 0 };
   }, []);
 
-  const onTouchMove = useCallback((e) => {
-    if (!dragState.current || !sheetRef.current) return;
-    e.preventDefault();
-    const touch = e.touches[0];
-    const delta = dragState.current.startY - touch.clientY;
-    const vh = window.innerHeight;
-    const newH = Math.min(
-      Math.max(dragState.current.startH + delta, SNAP_MIN_PX),
-      Math.round(vh * SNAP_MAX)
-    );
-    setHeight(newH);
-  }, [setHeight]);
-
   const onTouchEnd = useCallback(() => {
     if (!sheetRef.current) return;
     const vh = window.innerHeight;
@@ -60,13 +44,40 @@ const BottomSheet = forwardRef(function BottomSheet({ children, header }, ref) {
     dragState.current = null;
   }, [setHeight]);
 
+  const onTouchCancel = useCallback(() => {
+    dragState.current = null;
+  }, []);
+
+  // 비-passive touchmove 리스너 (e.preventDefault() 작동하게)
+  useEffect(() => {
+    const el = handleAreaRef.current;
+    if (!el) return;
+
+    const handleTouchMove = (e) => {
+      if (!dragState.current || !sheetRef.current) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const delta = dragState.current.startY - touch.clientY;
+      const vh = window.innerHeight;
+      const newH = Math.min(
+        Math.max(dragState.current.startH + delta, SNAP_MIN_PX),
+        Math.round(vh * SNAP_MAX)
+      );
+      sheetRef.current.style.height = `${newH}px`;
+    };
+
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', handleTouchMove);
+  }, []);
+
   return (
     <div className="bottom-sheet" ref={sheetRef}>
       <div
         className="bottom-sheet-handle-area"
+        ref={handleAreaRef}
         onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onTouchCancel={onTouchCancel}
       >
         <div className="bottom-sheet-handle" />
       </div>
