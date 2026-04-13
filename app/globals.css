@@ -2366,40 +2366,15 @@ body:has(.room-map-layout) {
   overflow: hidden;
 }
 
-/* 채팅 오버레이 (room-map-area 안에서 사이드바/시트 영역에 맞게 표시) */
-.room-chat-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 340px;
-  bottom: 0;
-  background: white;
-  border-right: 1px solid #e0e0e0;
-  z-index: 6;
-  overflow: hidden;
+/* 패널 안에서 Chat 스타일 초기화 */
+.room-sidebar-content .chat-section,
+.bottom-sheet-content .chat-section {
+  margin-top: 0;
+  border-radius: 0;
+  border: none;
+  padding: 0;
+  background: transparent;
   display: flex;
   flex-direction: column;
-}
-
-@media (max-width: 767px) {
-  .room-chat-overlay {
-    left: 0;
-    right: 0;
-    width: auto;
-    top: auto;
-    bottom: 0;
-    height: 50vh;
-    border-right: none;
-    border-top: 1px solid #e0e0e0;
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-    z-index: 21;
-  }
-}
-
-/* 채팅 패널 활성 시 모바일에서 BottomSheet 숨김 */
-@media (max-width: 767px) {
-  .bottom-sheet-chat-hidden .bottom-sheet {
-    display: none !important;
-  }
+  height: 100%;
 }
