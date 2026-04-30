@@ -32,8 +32,19 @@ dist-ssr
 .env.example
 .env*.local
 
-# Cloudflare credentials
+# Cloudflare
 cloudflared-credentials.json
+cloudflared-config.yml
+
+# Docker (contains credentials)
+docker-compose.yml
+
+# Local tooling
+.superpowers/
+.claude/
+
+# Runtime logs
+app/api/_log/
 
 # Database
 data/
