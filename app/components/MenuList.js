@@ -1,5 +1,5 @@
 'use client';
-export default function MenuList({ menus, votes, myVotes, onVote, onDelete, status }) {
+export default function MenuList({ menus, votes, myVotes, onVote, onDelete, status, anonymousVote = false, hideVoteCount = false }) {
   const getVoteCount = (menuId) => {
     let count = 0;
     if (votes) {
@@ -12,13 +12,6 @@ export default function MenuList({ menus, votes, myVotes, onVote, onDelete, stat
     return count;
   };
 
-  const getVoters = (menuId) => {
-    if (!votes) return [];
-    return Object.values(votes)
-      .filter((vote) => vote.menuIds && vote.menuIds.includes(menuId))
-      .map((vote) => ({ nickname: vote.nickname, isGuest: vote.isGuest || false }));
-  };
-
   const sortedMenus = Object.entries(menus || {})
     .map(([menuId, menu]) => ({ menuId, menu, voteCount: getVoteCount(menuId) }))
     .sort((a, b) => b.voteCount - a.voteCount);
@@ -28,9 +21,8 @@ export default function MenuList({ menus, votes, myVotes, onVote, onDelete, stat
   return (
     <div className="menu-list">
       {sortedMenus.map(({ menuId, menu, voteCount }) => {
-        const voters = getVoters(menuId);
         const isVoted = myVotes.includes(menuId);
-        const isFirst = voteCount > 0 && voteCount === topCount;
+        const isFirst = !hideVoteCount && voteCount > 0 && voteCount === topCount;
 
         return (
           <div key={menuId} className={`menu-item ${isVoted ? 'voted' : ''} ${isFirst ? 'first-place' : ''}`}>
@@ -43,20 +35,9 @@ export default function MenuList({ menus, votes, myVotes, onVote, onDelete, stat
               <span className="source-badge">
                 {menu.source === 'search' ? '🔍 검색 추가' : menu.source === 'naver' ? '📍 주변 음식점' : '✏️ 직접 추가'}
               </span>
-              {voters.length > 0 && (
-                <p className="voter-list">
-                  {voters.map((v, i) => (
-                    <span key={i}>
-                      {i > 0 && ', '}
-                      {v.isGuest && <span className="guest-badge">👤</span>}
-                      {v.nickname}
-                    </span>
-                  ))}
-                </p>
-              )}
             </div>
             <div className="menu-vote">
-              <span className="vote-count">{voteCount}표</span>
+              {!hideVoteCount && <span className="vote-count">{voteCount}표</span>}
               {status === 'voting' && (
                 <>
                   <button

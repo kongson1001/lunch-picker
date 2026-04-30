@@ -16,16 +16,21 @@ export async function GET(request) {
     return NextResponse.json({ error: 'KAKAO_REST_API_KEY not configured' }, { status: 500 });
   }
 
-  const noRadius = searchParams.get('noRadius') === '1';
+  const rect = searchParams.get('rect');
+  const radius = searchParams.get('radius');
+  const page = searchParams.get('page') || '1';
   const params = new URLSearchParams({
     query,
     size: '15',
+    page,
     sort: 'accuracy',
   });
-  if (x && y) {
+  if (rect) {
+    params.append('rect', rect);
+  } else if (x && y) {
     params.append('x', x);
     params.append('y', y);
-    if (!noRadius) params.append('radius', '2000');
+    if (radius) params.append('radius', radius);
   }
 
   const url = `https://dapi.kakao.com/v2/local/search/keyword.json?${params}`;

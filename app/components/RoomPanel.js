@@ -3,21 +3,25 @@
 // panels: [{ id, icon, label, disabled? }]
 // activePanel: string (현재 패널 id)
 // onSelect: (id) => void
-export function PanelIconBar({ panels, activePanel, onSelect }) {
+// openPanels: string[] (데스크탑 멀티), activePanel: string (모바일 단일)
+export function PanelIconBar({ panels, openPanels = null, activePanel, onSelect }) {
   return (
     <div className="room-icon-bar">
-      {panels.map(({ id, icon, label, disabled }) => (
-        <button
-          key={id}
-          disabled={!!disabled}
-          className={`room-icon-btn${activePanel === id ? ' active' : ''}${disabled ? ' disabled' : ''}`}
-          onClick={() => onSelect(id)}
-          title={label}
-          aria-label={label}
-        >
-          {icon}
-        </button>
-      ))}
+      {panels.map(({ id, icon, label, disabled }) => {
+        const isActive = openPanels !== null ? openPanels.includes(id) : activePanel === id;
+        return (
+          <button
+            key={id}
+            disabled={!!disabled}
+            className={`room-icon-btn${isActive ? ' active' : ''}${disabled ? ' disabled' : ''}`}
+            onClick={() => onSelect(id)}
+            aria-label={label}
+          >
+            <span className="room-icon-btn-icon">{icon}</span>
+            <span className="room-icon-btn-label">{label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

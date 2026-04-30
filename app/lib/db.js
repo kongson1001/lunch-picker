@@ -38,6 +38,8 @@ function createPool() {
     ALTER TABLE rooms ADD COLUMN IF NOT EXISTS room_type TEXT DEFAULT 'lunch';
     ALTER TABLE rooms ADD COLUMN IF NOT EXISTS schedules JSONB DEFAULT '{}';
     ALTER TABLE rooms ADD COLUMN IF NOT EXISTS schedule_votes JSONB DEFAULT '{}';
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS anonymous_vote BOOLEAN DEFAULT false;
+    ALTER TABLE rooms ADD COLUMN IF NOT EXISTS hide_vote_count BOOLEAN DEFAULT false;
   `);
   return _pool;
 }
@@ -74,6 +76,8 @@ export function roomDataToColumns(data) {
     room_type: data.roomType ?? 'lunch',
     schedules: JSON.stringify(data.schedules ?? {}),
     schedule_votes: JSON.stringify(data.scheduleVotes ?? {}),
+    anonymous_vote: data.anonymousVote ?? false,
+    hide_vote_count: data.hideVoteCount ?? false,
   };
 }
 
@@ -93,6 +97,8 @@ export function columnsToRoomData(row) {
     roomType: row.room_type ?? 'lunch',
     schedules: row.schedules ?? {},
     scheduleVotes: row.schedule_votes ?? {},
+    anonymousVote: row.anonymous_vote ?? false,
+    hideVoteCount: row.hide_vote_count ?? false,
   };
   if (row.password) data.password = row.password;
   return data;

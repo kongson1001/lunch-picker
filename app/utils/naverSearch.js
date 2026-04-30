@@ -47,13 +47,15 @@ export function reverseGeocodeNaver(lat, lng) {
   });
 }
 
-export async function searchRestaurants(query, lat, lng, noRadius = false) {
-  const params = new URLSearchParams({ query });
-  if (lat && lng) {
+export async function searchRestaurants(query, lat, lng, noRadius = false, bounds = null, page = 1, radius = 1000) {
+  const params = new URLSearchParams({ query, page: String(page) });
+  if (bounds) {
+    params.append('rect', `${bounds.sw.lng},${bounds.sw.lat},${bounds.ne.lng},${bounds.ne.lat}`);
+  } else if (lat && lng) {
     params.append('x', lng);
     params.append('y', lat);
+    if (!noRadius) params.append('radius', String(radius));
   }
-  if (noRadius) params.append('noRadius', '1');
 
   const url = `/api/searchRestaurants?${params}`;
 
@@ -65,7 +67,7 @@ export async function searchRestaurants(query, lat, lng, noRadius = false) {
       return [];
     }
 
-    const results = data.documents.map((doc) => ({
+    return data.documents.map((doc) => ({
       name: doc.place_name,
       category: doc.category_name,
       address: doc.road_address_name || doc.address_name,
@@ -74,9 +76,26 @@ export async function searchRestaurants(query, lat, lng, noRadius = false) {
       distance: doc.distance,
       source: 'search',
     }));
-    return results;
   } catch (err) {
     console.error('[검색] 실패:', err);
     return [];
   }
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+export async function searchRestaurantsRandom(categories, lat, lng, bounds = null, limit = 5, radius = 1000) {
+  const randomPage = () => Math.ceil(Math.random() * 3);
+  const fetches = categories.map(cat =>
+    searchRestaurants(cat, lat, lng, !!bounds, bounds, randomPage(), radius)
+  );
+  const results = await Promise.all(fetches);
+  return shuffle(results.flat()).slice(0, limit);
 }

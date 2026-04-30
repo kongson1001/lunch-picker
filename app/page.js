@@ -14,6 +14,8 @@ export default function Home() {
   const [rooms, setRooms] = useState([]);
   const [usePassword, setUsePassword] = useState(false);
   const [password, setPassword] = useState('');
+  const [anonymousVote, setAnonymousVote] = useState(false);
+  const [hideVoteCount, setHideVoteCount] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editNickname, setEditNickname] = useState('');
   const [editImage, setEditImage] = useState(null);
@@ -162,7 +164,7 @@ export default function Home() {
           location = { lat: position.coords.latitude, lng: position.coords.longitude };
         } catch {}
       }
-      const roomId = await createRoom(user.nickname, location, roomName.trim(), user.uid, usePassword ? password.trim() : '', activeTab);
+      const roomId = await createRoom(user.nickname, location, roomName.trim(), user.uid, usePassword ? password.trim() : '', activeTab, { anonymousVote, hideVoteCount });
       router.push(`/room/${roomId}`);
     } catch (err) {
       if (err?.code === 1) {
@@ -414,6 +416,16 @@ export default function Home() {
                   maxLength={20}
                 />
               )}
+              <div className="room-options">
+                <label className="room-option-label">
+                  <input type="checkbox" checked={anonymousVote} onChange={e => setAnonymousVote(e.target.checked)} />
+                  익명 투표
+                </label>
+                <label className="room-option-label">
+                  <input type="checkbox" checked={hideVoteCount} onChange={e => setHideVoteCount(e.target.checked)} />
+                  득표 수 숨기기
+                </label>
+              </div>
             </div>
 
             {error && <p className="error">{error}</p>}
@@ -475,6 +487,11 @@ export default function Home() {
                       <div className="room-card-info">
                         <span>만든 사람: {room.createdBy}</span>
                         <span>메뉴 {menuCount}개 · 참여 {voteCount}명</span>
+                        {room.createdAt && (
+                          <span className="room-card-date">
+                            {new Date(room.createdAt).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })}
+                          </span>
+                        )}
                       </div>
                     </div>
                   );

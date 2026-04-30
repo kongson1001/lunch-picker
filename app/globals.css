@@ -297,9 +297,15 @@ body {
 
 .room-card-info {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 2px;
   font-size: 0.82rem;
   color: #888;
+}
+
+.room-card-date {
+  font-size: 0.78rem;
+  color: #bbb;
 }
 
 /* ===== Room Page ===== */
@@ -319,6 +325,13 @@ body {
   border: 2px solid #f0e0d6;
   border-radius: 16px;
   padding: 20px;
+}
+
+.classic-restaurant-section {
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
 .section-title {
@@ -444,6 +457,22 @@ body {
 
 .copy-btn:hover {
   background: #eee;
+}
+
+.layout-toggle-btn {
+  padding: 4px 10px;
+  background: white;
+  color: #555;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.layout-toggle-btn:hover {
+  background: #f0f0f0;
 }
 
 .leave-btn {
@@ -843,6 +872,85 @@ body {
   margin-bottom: 20px;
   display: flex;
   flex-direction: column;
+}
+
+.map-search-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff5f0;
+  border: 1.5px solid #f5c4a8;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: #c0521a;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.radius-selector {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.radius-btn {
+  flex: 1;
+  padding: 5px 0;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: #666;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.radius-btn.active {
+  background: #fff5f0;
+  border-color: #e85d26;
+  color: #e85d26;
+}
+
+.radius-btn:hover:not(.active) {
+  border-color: #ccc;
+  color: #333;
+}
+
+.quick-search-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.quick-search-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 4px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  background: white;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: #444;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.quick-search-btn:hover {
+  background: #fff5f0;
+  border-color: #e85d26;
+  color: #e85d26;
+}
+
+.quick-search-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .search-clear-btn {
@@ -1561,6 +1669,34 @@ body {
   border-color: #e85d26;
 }
 
+.room-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #faf8f6;
+  border: 1.5px solid #eee;
+  border-radius: 10px;
+}
+
+.room-option-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #555;
+  cursor: pointer;
+  user-select: none;
+}
+
+.room-option-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #e85d26;
+  cursor: pointer;
+}
+
 .room-lock-icon {
   margin-right: 4px;
   font-size: 0.85rem;
@@ -2191,14 +2327,51 @@ body {
 
 /* 데스크탑: 왼쪽 패널 */
 .room-sidebar {
-  width: 340px;
-  min-width: 340px;
+  width: 400px;
+  min-width: 400px;
   background: white;
   border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   z-index: 5;
+  position: relative;
+  transition: width 0.28s ease, min-width 0.28s ease, transform 0.28s ease;
+}
+
+.room-sidebar.sidebar-hidden {
+  transform: translateX(-100%);
+  width: 0 !important;
+  min-width: 0 !important;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.sidebar-resize-handle::after {
+  content: '';
+  width: 3px;
+  height: 40px;
+  border-radius: 2px;
+  background: #d0d0d0;
+  transition: background 0.15s, height 0.15s;
+}
+
+.sidebar-resize-handle:hover::after,
+.sidebar-resize-handle:active::after {
+  background: #e85d26;
+  height: 56px;
 }
 
 .room-sidebar-header {
@@ -2215,8 +2388,70 @@ body {
 
 .room-sidebar-content {
   flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  border-bottom: 2px solid #f0e0d6;
+}
+
+.sidebar-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: #e85d26;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.sidebar-panel-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 2px 4px;
+  opacity: 0.75;
+  font-family: inherit;
+  border-radius: 4px;
+}
+
+.sidebar-panel-close:hover {
+  opacity: 1;
+  background: rgba(255,255,255,0.2);
+}
+
+.sidebar-panel-content {
+  display: flex;
+  flex-direction: column;
   padding: 12px;
+  min-height: 0;
+}
+
+.sidebar-panel-content.no-padding {
+  padding: 0;
+}
+
+.sidebar-empty-hint {
+  color: #aaa;
+  font-size: 13px;
+  text-align: center;
+  padding: 40px 20px;
 }
 
 /* 지도 영역 */
@@ -2242,34 +2477,45 @@ body {
 /* 지도 위 아이콘 바 */
 .room-icon-bar {
   position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 10px;
+  left: 12px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 8px;
   z-index: 10;
 }
 
 .room-icon-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 22px;
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 18px;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   transition: transform 0.1s, box-shadow 0.1s;
   background: white;
   color: #333;
   font-family: inherit;
+  white-space: nowrap;
+}
+
+.room-icon-btn-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.room-icon-btn-label {
+  font-size: 13px;
 }
 
 .room-icon-btn:hover {
-  transform: scale(1.08);
+  transform: scale(1.05);
   box-shadow: 0 3px 10px rgba(0,0,0,0.25);
 }
 
@@ -2322,6 +2568,11 @@ body {
     position: absolute;
     inset: 0;
   }
+
+  .room-icon-bar {
+    left: 8px;
+    right: 8px;
+  }
 }
 
 /* BottomSheet 컴포넌트 */
@@ -2338,6 +2589,11 @@ body {
   overflow: hidden;
   flex-direction: column;
   touch-action: none;
+  transition: transform 0.28s ease;
+}
+
+.bottom-sheet.bottom-sheet-hidden {
+  transform: translateY(100%);
 }
 
 .bottom-sheet-handle-area {
@@ -2373,8 +2629,11 @@ body {
 
 .bottom-sheet-content {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
   padding: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -2386,10 +2645,11 @@ body {
 
 body:has(.room-map-layout) {
   overflow: hidden;
+  user-select: none;
 }
 
 /* 패널 안에서 Chat 스타일 초기화 */
-.room-sidebar-content .chat-section,
+.sidebar-panel-content .chat-section,
 .bottom-sheet-content .chat-section {
   margin-top: 0;
   border-radius: 0;
@@ -2398,11 +2658,32 @@ body:has(.room-map-layout) {
   background: transparent;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar-panel-content .chat-section .section-title,
+.bottom-sheet-content .chat-section .section-title {
+  display: none;
+}
+
+.sidebar-panel-content .chat-section .chat-messages-container,
+.bottom-sheet-content .chat-section .chat-messages-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-panel-content .chat-section .chat-messages,
+.bottom-sheet-content .chat-section .chat-messages {
+  flex: 1;
+  height: auto;
+  min-height: 0;
 }
 
 /* 패널 컴포넌트들이 사이드바/시트 높이 꽉 채우기 */
-.room-sidebar-content .restaurant-search,
+.sidebar-panel-content .restaurant-search,
 .bottom-sheet-content .restaurant-search {
   margin-bottom: 0;
   flex: 1;
@@ -2411,11 +2692,204 @@ body:has(.room-map-layout) {
   flex-direction: column;
 }
 
-.room-sidebar-content .restaurant-search .search-results,
+.sidebar-panel-content .restaurant-search .search-results,
 .bottom-sheet-content .restaurant-search .search-results,
-.room-sidebar-content .restaurant-search .favorites-list,
+.sidebar-panel-content .restaurant-search .favorites-list,
 .bottom-sheet-content .restaurant-search .favorites-list {
   flex: 1;
   overflow-y: auto;
   margin-bottom: 0;
+  max-height: none;
+}
+
+/* ===== Install Prompt ===== */
+.install-prompt {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+  padding: 14px 16px 12px;
+  z-index: 9999;
+  animation: installSlideUp 0.3s ease;
+}
+
+@keyframes installSlideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.install-prompt-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.install-prompt-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.install-prompt-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.install-prompt-text strong {
+  font-size: 0.95rem;
+  color: #222;
+  display: block;
+}
+
+.install-prompt-sub {
+  font-size: 0.78rem;
+  color: #888;
+  margin-top: 2px;
+}
+
+.install-prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.install-prompt-btn {
+  background: #e85d26;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 7px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.install-prompt-close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  color: #aaa;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+}
+
+.install-prompt-noshowlabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #999;
+  cursor: pointer;
+  user-select: none;
+}
+
+.install-prompt-noshowlabel input[type="checkbox"] {
+  accent-color: #e85d26;
+  cursor: pointer;
+}
+
+.install-ios-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px;
+}
+
+.install-ios-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 24px 20px 28px;
+  width: 100%;
+  position: relative;
+  animation: installSlideUp 0.25s ease;
+}
+
+.install-ios-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.install-ios-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.install-ios-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.install-ios-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.92rem;
+  color: #444;
+  line-height: 1.4;
+}
+
+.install-ios-step-icon {
+  background: #e85d26;
+  color: white;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.install-ios-share-icon {
+  margin-left: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.install-ios-done-btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  background: #e85d26;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
 }

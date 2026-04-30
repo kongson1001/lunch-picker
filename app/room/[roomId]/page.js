@@ -42,8 +42,43 @@ export default function RoomPage() {
   const [nameConflictInput, setNameConflictInput] = useState('');
   const [nameConflictError, setNameConflictError] = useState('');
   const [nameConflictLoading, setNameConflictLoading] = useState(false);
-  const [activePanel, setActivePanel] = useState('search');
+  const [activePanel, setActivePanel] = useState('search'); // 모바일 bottom sheet용
+  const [openPanels, setOpenPanels] = useState(['search']); // 데스크탑 멀티패널
+  const [sidebarWidth, setSidebarWidth] = useState(400);
+  const [mapBounds, setMapBounds] = useState(null);
+  const [mapLayout, setMapLayout] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem('roomLayoutMode') !== 'classic';
+  });
+
+  const toggleLayout = () => {
+    setMapLayout(prev => {
+      const next = !prev;
+      localStorage.setItem('roomLayoutMode', next ? 'map' : 'classic');
+      return next;
+    });
+  };
   const bottomSheetRef = useRef(null);
+  const isResizing = useRef(false);
+  const locationInitialized = useRef(false);
+
+  const handleResizeStart = (e) => {
+    e.preventDefault();
+    isResizing.current = true;
+    const onMove = (ev) => {
+      if (!isResizing.current) return;
+      const clientX = ev.touches ? ev.touches[0].clientX : ev.clientX;
+      const newWidth = Math.min(Math.max(clientX, 260), window.innerWidth * 0.6);
+      setSidebarWidth(Math.round(newWidth));
+    };
+    const onUp = () => {
+      isResizing.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
 
   const fetchRoomData = async () => {
     if (!roomId) return;
@@ -132,14 +167,35 @@ export default function RoomPage() {
   ];
 
   const handlePanelSelect = (id) => {
+    // 모바일: 마지막 클릭 패널을 bottom sheet에 표시
     setActivePanel(id);
     resetBottomSheet(bottomSheetRef.current);
+    // 데스크탑: 토글 (있으면 제거, 없으면 추가)
+    setOpenPanels(prev =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    );
+  };
+
+  const closeSidebarPanel = (id) => {
+    setOpenPanels(prev => prev.filter(p => p !== id));
   };
 
   const activeInfo = getPanelTitle(panels, activePanel);
 
   useEffect(() => {
-    if (room?.location && !currentLocation) {
+    if (!room?.location || locationInitialized.current) return;
+    locationInitialized.current = true;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+        },
+        () => {
+          setCurrentLocation(room.location);
+        },
+        { timeout: 5000 }
+      );
+    } else {
       setCurrentLocation(room.location);
     }
   }, [room?.location]);
@@ -343,135 +399,214 @@ export default function RoomPage() {
     fetchRoomData();
   };
 
-  const renderPanelContent = () => {
-    switch (activePanel) {
-      case 'search':
-        return (
-          <>
-            {room.status === 'voting' && (
-              <RestaurantSearch
-                lat={currentLocation?.lat || room.location?.lat}
-                lng={currentLocation?.lng || room.location?.lng}
-                areaName={areaName}
-                onAdd={handleAddRestaurant}
-                onResults={setSearchMarkers}
-                addedNames={new Set(Object.values(room?.menus || {}).map(m => m.name))}
-                noRadius={room.roomType === 'hoesik'}
-              />
-            )}
-            {room.status !== 'voting' && (
-              <p style={{ color: '#999', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>투표가 마감되었습니다.</p>
-            )}
-          </>
-        );
-      case 'vote':
-        return (
-          <>
-            <MenuList
-              menus={room.menus}
-              votes={room.votes}
-              myVotes={myVotes}
-              onVote={handleVote}
-              onDelete={id => fetch(`/api/db/rooms/${roomId}/menus/${id}`, { method: 'DELETE' }).then(fetchRoomData)}
-              status={room.status}
-            />
-            {room.status === 'voting' && (
-              <>
-                <AddMenu onAdd={handleAddMenu} />
-                {computedIsHost && (
-                  <button className="close-btn" onClick={handleClose} style={{ marginTop: '12px' }}>
-                    투표 마감하기
-                  </button>
-                )}
-              </>
-            )}
-          </>
-        );
-      case 'chat':
-        return <Chat roomId={roomId} user={user} />;
-      case 'attend':
-        return (
-          <>
-            <div className="participation-selector" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-              <button
-                className={`participation-btn ${participation === 'participate' ? 'active' : ''}`}
-                onClick={() => handleParticipationChange('participate')}
-              >
-                🙋‍♂️ 참여
-              </button>
-              <button
-                className={`participation-btn decline ${participation === 'decline' ? 'active' : ''}`}
-                onClick={() => handleParticipationChange('decline', participationReason)}
-              >
-                🙅‍♀️ 미참여
-              </button>
+  const addedNames = new Set(Object.values(room?.menus || {}).map(m => m.name));
+
+  const panelScrollStyle = { flex: 1, minHeight: 0, overflowY: 'auto' };
+  const panelFillStyle = { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' };
+
+  const searchPanel = (
+    <>
+      {room?.status === 'voting' ? (
+        <RestaurantSearch
+          lat={currentLocation?.lat || room?.location?.lat}
+          lng={currentLocation?.lng || room?.location?.lng}
+          areaName={areaName}
+          onAdd={handleAddRestaurant}
+          onResults={setSearchMarkers}
+          addedNames={addedNames}
+          noRadius={isHoesik}
+          bounds={isHoesik ? mapBounds : null}
+        />
+      ) : (
+        <p style={{ color: '#999', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>투표가 마감되었습니다.</p>
+      )}
+    </>
+  );
+
+  const renderSinglePanelContent = (panelId) => {
+    switch (panelId) {
+      case 'search': return searchPanel;
+      case 'vote': return (
+        <div style={panelScrollStyle}>
+          <MenuList menus={room.menus} votes={room.votes} myVotes={myVotes} onVote={handleVote} onDelete={id => fetch(`/api/db/rooms/${roomId}/menus/${id}`, { method: 'DELETE' }).then(fetchRoomData)} status={room.status} anonymousVote={room.anonymousVote} hideVoteCount={room.hideVoteCount} />
+          {room.status === 'voting' && (
+            <>
+              <AddMenu onAdd={handleAddMenu} />
+              {computedIsHost && <button className="close-btn" onClick={handleClose} style={{ marginTop: '12px' }}>투표 마감하기</button>}
+            </>
+          )}
+        </div>
+      );
+      case 'chat': return <Chat roomId={roomId} user={user} />;
+      case 'attend': return (
+        <div style={panelScrollStyle}>
+          <div className="participation-selector" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            <button className={`participation-btn ${participation === 'participate' ? 'active' : ''}`} onClick={() => handleParticipationChange('participate')}>🙋‍♂️ 참여</button>
+            <button className={`participation-btn decline ${participation === 'decline' ? 'active' : ''}`} onClick={() => handleParticipationChange('decline', participationReason)}>🙅‍♀️ 미참여</button>
+          </div>
+          {participation === 'decline' && (
+            <div className="decline-reason-input" style={{ marginBottom: '16px' }}>
+              <input type="text" placeholder="미참여 사유 입력" value={participationReason} onChange={(e) => setParticipationReason(e.target.value)} />
+              <button className="reason-save-btn" onClick={() => handleParticipationChange('decline', participationReason, true)}>저장</button>
             </div>
-            {participation === 'decline' && (
-              <div className="decline-reason-input" style={{ marginBottom: '16px' }}>
-                <input
-                  type="text"
-                  placeholder="미참여 사유 입력"
-                  value={participationReason}
-                  onChange={(e) => setParticipationReason(e.target.value)}
-                />
-                <button
-                  className="reason-save-btn"
-                  onClick={() => handleParticipationChange('decline', participationReason, true)}
-                >
-                  저장
-                </button>
+          )}
+          <div className="participant-status-list">
+            <h3>참여자 현황</h3>
+            <div className="status-grid">
+              <div className="status-column">
+                <h4>참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'participate').length})</h4>
+                <ul>{Object.values(room?.participation || {}).filter(p => p.status === 'participate').map((p, idx) => <li key={idx}>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</li>)}</ul>
               </div>
-            )}
-            <div className="participant-status-list">
-              <h3>참여자 현황</h3>
-              <div className="status-grid">
-                <div className="status-column">
-                  <h4>참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'participate').length})</h4>
-                  <ul>
-                    {Object.values(room?.participation || {})
-                      .filter(p => p.status === 'participate')
-                      .map((p, idx) => (
-                        <li key={idx}>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</li>
-                      ))}
-                  </ul>
-                </div>
-                <div className="status-column decline">
-                  <h4>미참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'decline').length})</h4>
-                  <ul>
-                    {Object.values(room?.participation || {})
-                      .filter(p => p.status === 'decline')
-                      .map((p, idx) => (
-                        <li key={idx}>
-                          <strong>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</strong>
-                          {p.reason && <span className="reason"> - {p.reason}</span>}
-                        </li>
-                      ))}
-                  </ul>
-                </div>
+              <div className="status-column decline">
+                <h4>미참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'decline').length})</h4>
+                <ul>{Object.values(room?.participation || {}).filter(p => p.status === 'decline').map((p, idx) => <li key={idx}><strong>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</strong>{p.reason && <span className="reason"> - {p.reason}</span>}</li>)}</ul>
               </div>
             </div>
-          </>
-        );
-      case 'schedule':
-        return (
-          <>
-            <ScheduleVote
-              schedules={room.schedules}
-              scheduleVotes={room.scheduleVotes}
-              myScheduleVotes={myScheduleVotes}
-              onVote={handleScheduleVote}
-              onDelete={handleDeleteSchedule}
-              status={room.status}
-            />
-            {room.status === 'voting' && (
-              <AddSchedule onAdd={handleAddSchedule} />
-            )}
-          </>
-        );
-      default:
-        return null;
+          </div>
+        </div>
+      );
+      case 'schedule': return (
+        <div style={panelScrollStyle}>
+          <ScheduleVote schedules={room.schedules} scheduleVotes={room.scheduleVotes} myScheduleVotes={myScheduleVotes} onVote={handleScheduleVote} onDelete={handleDeleteSchedule} status={room.status} />
+          {room.status === 'voting' && <AddSchedule onAdd={handleAddSchedule} />}
+        </div>
+      );
+      default: return null;
     }
   };
+
+  // 모바일 bottom sheet용 (단일 패널)
+  const renderPanelContent = () => (
+    <>
+      {/* 검색 패널 — 항상 마운트, 비활성 시 숨김 */}
+      <div style={{ ...(activePanel === 'search' ? panelFillStyle : { display: 'none' }) }}>
+        {room.status === 'voting' ? (
+          <RestaurantSearch
+            lat={currentLocation?.lat || room.location?.lat}
+            lng={currentLocation?.lng || room.location?.lng}
+            areaName={areaName}
+            onAdd={handleAddRestaurant}
+            onResults={setSearchMarkers}
+            addedNames={addedNames}
+            noRadius={isHoesik}
+            bounds={isHoesik ? mapBounds : null}
+          />
+        ) : (
+          <p style={{ color: '#999', fontSize: '13px', textAlign: 'center', padding: '20px 0' }}>투표가 마감되었습니다.</p>
+        )}
+      </div>
+
+      {/* 투표 패널 */}
+      {activePanel === 'vote' && (
+        <div style={panelScrollStyle}>
+          <MenuList
+            menus={room.menus}
+            votes={room.votes}
+            myVotes={myVotes}
+            onVote={handleVote}
+            onDelete={id => fetch(`/api/db/rooms/${roomId}/menus/${id}`, { method: 'DELETE' }).then(fetchRoomData)}
+            status={room.status}
+            anonymousVote={room.anonymousVote}
+            hideVoteCount={room.hideVoteCount}
+          />
+          {room.status === 'voting' && (
+            <>
+              <AddMenu onAdd={handleAddMenu} />
+              {computedIsHost && (
+                <button className="close-btn" onClick={handleClose} style={{ marginTop: '12px' }}>
+                  투표 마감하기
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 채팅 패널 */}
+      {activePanel === 'chat' && <Chat roomId={roomId} user={user} />}
+
+      {/* 참여 패널 */}
+      {activePanel === 'attend' && (
+        <div style={panelScrollStyle}>
+          <div className="participation-selector" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+            <button
+              className={`participation-btn ${participation === 'participate' ? 'active' : ''}`}
+              onClick={() => handleParticipationChange('participate')}
+            >
+              🙋‍♂️ 참여
+            </button>
+            <button
+              className={`participation-btn decline ${participation === 'decline' ? 'active' : ''}`}
+              onClick={() => handleParticipationChange('decline', participationReason)}
+            >
+              🙅‍♀️ 미참여
+            </button>
+          </div>
+          {participation === 'decline' && (
+            <div className="decline-reason-input" style={{ marginBottom: '16px' }}>
+              <input
+                type="text"
+                placeholder="미참여 사유 입력"
+                value={participationReason}
+                onChange={(e) => setParticipationReason(e.target.value)}
+              />
+              <button
+                className="reason-save-btn"
+                onClick={() => handleParticipationChange('decline', participationReason, true)}
+              >
+                저장
+              </button>
+            </div>
+          )}
+          <div className="participant-status-list">
+            <h3>참여자 현황</h3>
+            <div className="status-grid">
+              <div className="status-column">
+                <h4>참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'participate').length})</h4>
+                <ul>
+                  {Object.values(room?.participation || {})
+                    .filter(p => p.status === 'participate')
+                    .map((p, idx) => (
+                      <li key={idx}>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</li>
+                    ))}
+                </ul>
+              </div>
+              <div className="status-column decline">
+                <h4>미참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'decline').length})</h4>
+                <ul>
+                  {Object.values(room?.participation || {})
+                    .filter(p => p.status === 'decline')
+                    .map((p, idx) => (
+                      <li key={idx}>
+                        <strong>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</strong>
+                        {p.reason && <span className="reason"> - {p.reason}</span>}
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 일정 패널 */}
+      {activePanel === 'schedule' && (
+        <div style={panelScrollStyle}>
+          <ScheduleVote
+            schedules={room.schedules}
+            scheduleVotes={room.scheduleVotes}
+            myScheduleVotes={myScheduleVotes}
+            onVote={handleScheduleVote}
+            onDelete={handleDeleteSchedule}
+            status={room.status}
+          />
+          {room.status === 'voting' && (
+            <AddSchedule onAdd={handleAddSchedule} />
+          )}
+        </div>
+      )}
+    </>
+  );
 
   if (loading) return <div className="loading">방 정보 로딩 중...</div>;
 
@@ -499,6 +634,112 @@ export default function RoomPage() {
     );
   }
 
+  if (!mapLayout) return (
+    <div className="main-container">
+      <div className="room-container">
+        <header className="room-header">
+          {editingTitle ? (
+            <input className="room-title-input" value={titleInput} onChange={(e) => setTitleInput(e.target.value)} onBlur={handleTitleSave} onKeyDown={(e) => { if (e.key === 'Enter') handleTitleSave(); if (e.key === 'Escape') setEditingTitle(false); }} autoFocus />
+          ) : (
+            <h1>
+              {room.roomName || '오늘 뭐 먹지?'}
+              {computedIsHost && <button className="title-edit-btn" onClick={() => { setTitleInput(room.roomName || ''); setEditingTitle(true); }}>✏️</button>}
+            </h1>
+          )}
+          <div className="room-code">
+            <span>방 코드: <strong>{roomId}</strong></span>
+            <button className="copy-btn" onClick={() => { navigator.clipboard.writeText(window.location.href); alert('복사됨'); }}>링크 복사</button>
+            <button className="layout-toggle-btn" onClick={toggleLayout} title="지도 UI로 전환">🗺️</button>
+            <button className="leave-btn" onClick={() => router.push('/')}>나가기</button>
+          </div>
+        </header>
+
+        <div className="room-body">
+          <section className="room-section">
+            <h2 className="section-title">투표</h2>
+            <MenuList menus={room.menus} votes={room.votes} myVotes={myVotes} onVote={handleVote} onDelete={id => fetch(`/api/db/rooms/${roomId}/menus/${id}`, { method: 'DELETE' }).then(fetchRoomData)} status={room.status} anonymousVote={room.anonymousVote} hideVoteCount={room.hideVoteCount} />
+            {room.status === 'voting' && (
+              <>
+                <AddMenu onAdd={handleAddMenu} />
+                {computedIsHost && <button className="close-btn" onClick={handleClose}>투표 마감하기</button>}
+              </>
+            )}
+          </section>
+
+          <section className="room-section classic-restaurant-section">
+            <h2 className="section-title">음식점 찾기</h2>
+            {currentLocation && (
+              <>
+                <div style={{ height: 280, minHeight: 280, flexShrink: 0, borderRadius: 12, overflow: 'hidden', marginBottom: 10 }}>
+                  <NaverMap lat={currentLocation.lat} lng={currentLocation.lng} markers={searchMarkers} menuMarkers={Object.values(room?.menus || {}).filter(m => m.lat && m.lng).map(m => ({ name: m.name, lat: m.lat, lng: m.lng }))} onReady={handleMapReady} onBoundsChange={isHoesik ? setMapBounds : undefined} fitMarkersOnInit={isHoesik} />
+                </div>
+                <button className="location-update-btn" onClick={handleUpdateLocation} disabled={locating}>{locating ? '위치 가져오는 중...' : '내 현재 위치로 갱신'}</button>
+              </>
+            )}
+            {room.status === 'voting' && (
+              <RestaurantSearch lat={currentLocation?.lat || room.location?.lat} lng={currentLocation?.lng || room.location?.lng} areaName={areaName} onAdd={handleAddRestaurant} onResults={setSearchMarkers} addedNames={addedNames} noRadius={isHoesik} bounds={isHoesik ? mapBounds : null} />
+            )}
+          </section>
+        </div>
+
+        {isHoesik && (
+          <section className="room-section">
+            <h2 className="section-title">날짜·시간 투표</h2>
+            <ScheduleVote schedules={room.schedules} scheduleVotes={room.scheduleVotes} myScheduleVotes={myScheduleVotes} onVote={handleScheduleVote} onDelete={handleDeleteSchedule} status={room.status} />
+            {room.status === 'voting' && <AddSchedule onAdd={handleAddSchedule} />}
+          </section>
+        )}
+
+        <section className="room-section participation-section">
+          <h2 className="section-title">{isHoesik ? '회식 참여 여부' : '점심 참여 여부'}</h2>
+          <div className="participation-flex">
+            <div className="participation-controls">
+              <div className="participation-selector">
+                <button className={`participation-btn ${participation === 'participate' ? 'active' : ''}`} onClick={() => handleParticipationChange('participate')}>🙋‍♂️ 참여</button>
+                <button className={`participation-btn decline ${participation === 'decline' ? 'active' : ''}`} onClick={() => handleParticipationChange('decline', participationReason)}>🙅‍♀️ 미참여</button>
+              </div>
+              {participation === 'decline' && (
+                <div className="decline-reason-input">
+                  <input type="text" placeholder="미참여 사유 입력" value={participationReason} onChange={(e) => setParticipationReason(e.target.value)} />
+                  <button className="reason-save-btn" onClick={() => handleParticipationChange('decline', participationReason, true)}>저장</button>
+                </div>
+              )}
+            </div>
+            <div className="participant-status-list">
+              <h3>참여자 현황</h3>
+              <div className="status-grid">
+                <div className="status-column">
+                  <h4>참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'participate').length})</h4>
+                  <ul>{Object.values(room?.participation || {}).filter(p => p.status === 'participate').map((p, idx) => <li key={idx}>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</li>)}</ul>
+                </div>
+                <div className="status-column decline">
+                  <h4>미참여 ({Object.values(room?.participation || {}).filter(p => p.status === 'decline').length})</h4>
+                  <ul>{Object.values(room?.participation || {}).filter(p => p.status === 'decline').map((p, idx) => <li key={idx}><strong>{p.isGuest && <span className="guest-badge">👤</span>}{p.nickname}</strong>{p.reason && <span className="reason"> - {p.reason}</span>}</li>)}</ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <Chat roomId={roomId} user={user} />
+      </div>
+
+      {nameConflictModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>이름 변경 필요</h3>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>이미 <strong>{nickname}</strong>이 이 방에 있습니다.<br />이름을 변경하고 입장하세요.</p>
+            <input type="text" placeholder="새 이름 입력" value={nameConflictInput} onChange={(e) => { setNameConflictInput(e.target.value); setNameConflictError(''); }} onKeyDown={(e) => e.key === 'Enter' && handleNameConflictSubmit()} maxLength={20} autoFocus />
+            {nameConflictError && <p className="error">{nameConflictError}</p>}
+            <div className="modal-buttons">
+              <button className="primary-btn" onClick={handleNameConflictSubmit} disabled={nameConflictLoading}>{nameConflictLoading ? '확인 중...' : '변경 후 입장'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="room-map-layout">
       {/* 슬림 헤더 */}
@@ -523,6 +764,7 @@ export default function RoomPage() {
         <div className="header-right">
           <span className="header-code">{roomId}</span>
           <button className="header-btn" onClick={() => { navigator.clipboard.writeText(window.location.href); alert('복사됨'); }}>링크 복사</button>
+          <button className="header-btn" onClick={toggleLayout} title="기본 UI로 전환">☰</button>
           <button className="header-btn" onClick={() => router.push('/')}>나가기</button>
         </div>
       </header>
@@ -530,14 +772,37 @@ export default function RoomPage() {
       {/* 본문 */}
       <div className="room-map-body">
         {/* 데스크탑 왼쪽 패널 */}
-        <aside className="room-sidebar">
-          <div className="room-sidebar-header">
-            <span>{activeInfo.icon}</span>
-            <span>{activeInfo.label}</span>
+        <aside className={`room-sidebar${openPanels.length === 0 ? ' sidebar-hidden' : ''}`} style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+          <div className="room-sidebar-content">
+            {/* 검색 패널: 항상 마운트, 닫히면 숨김 */}
+            <div className="sidebar-panel" style={{ display: openPanels.includes('search') ? 'flex' : 'none' }}>
+              <div className="sidebar-panel-header">
+                <span>🔍</span><span>음식점 검색</span>
+                <button className="sidebar-panel-close" onClick={() => closeSidebarPanel('search')}>✕</button>
+              </div>
+              <div className="sidebar-panel-content">
+                {searchPanel}
+              </div>
+            </div>
+
+            {/* 나머지 패널: 열릴 때만 마운트 */}
+            {panels.filter(p => p.id !== 'search' && openPanels.includes(p.id)).map(panelInfo => (
+              <div key={panelInfo.id} className="sidebar-panel">
+                <div className="sidebar-panel-header">
+                  <span>{panelInfo.icon}</span><span>{panelInfo.label}</span>
+                  <button className="sidebar-panel-close" onClick={() => closeSidebarPanel(panelInfo.id)}>✕</button>
+                </div>
+                <div className={`sidebar-panel-content${panelInfo.id === 'chat' ? ' no-padding' : ''}`}>
+                  {renderSinglePanelContent(panelInfo.id)}
+                </div>
+              </div>
+            ))}
+
+            {openPanels.length === 0 && (
+              <p className="sidebar-empty-hint">위 아이콘을 눌러 패널을 추가하세요</p>
+            )}
           </div>
-          <div className="room-sidebar-content" style={activePanel === 'chat' ? { padding: 0 } : undefined}>
-            {renderPanelContent()}
-          </div>
+          <div className="sidebar-resize-handle" onMouseDown={handleResizeStart} />
         </aside>
 
         {/* 지도 */}
@@ -549,12 +814,15 @@ export default function RoomPage() {
               markers={searchMarkers}
               menuMarkers={Object.values(room?.menus || {}).filter(m => m.lat && m.lng).map(m => ({ name: m.name, lat: m.lat, lng: m.lng }))}
               onReady={handleMapReady}
+              onBoundsChange={isHoesik ? setMapBounds : undefined}
+              fitMarkersOnInit={isHoesik}
             />
           )}
 
           {/* 아이콘 바 */}
           <PanelIconBar
             panels={panels}
+            openPanels={openPanels}
             activePanel={activePanel}
             onSelect={handlePanelSelect}
           />
@@ -571,6 +839,7 @@ export default function RoomPage() {
           {/* 모바일: 하단 드래그 시트 */}
           <BottomSheet
             ref={bottomSheetRef}
+            open={openPanels.length > 0}
             header={<><span>{activeInfo.icon}</span><span>{activeInfo.label}</span></>}
           >
             {renderPanelContent()}

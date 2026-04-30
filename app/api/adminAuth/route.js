@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { createSessionCookie } from '../../lib/auth.js';
+import { getDb, toKST } from '../../lib/db.js';
 
 export async function POST(request) {
   const { adminId, adminPw } = await request.json();
@@ -12,14 +14,17 @@ export async function POST(request) {
   }
 
   if (adminId === EXPECTED_ID && adminPw === EXPECTED_PW) {
-    return NextResponse.json({ 
-      success: true, 
-      adminUser: {
-        uid: 'admin_test_id',
-        nickname: '관리자(보안인증)',
-        isAdmin: true
-      }
-    });
+    const adminUser = { uid: 'admin', nickname: '관리자', isAdmin: true };
+
+    const pool = await getDb();
+    await pool.query(
+      'INSERT INTO login_history (uid, nickname, type, logged_in_at, login_time) VALUES ($1, $2, $3, $4, $5)',
+      ['admin', '관리자', 'admin', Date.now(), toKST()]
+    );
+
+    const response = NextResponse.json({ success: true, adminUser });
+    response.headers.set('Set-Cookie', createSessionCookie({ uid: 'admin', isAdmin: true }));
+    return response;
   } else {
     return NextResponse.json({ success: false, error: '인증 정보가 일치하지 않습니다.' }, { status: 401 });
   }

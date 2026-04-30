@@ -9,7 +9,7 @@ export function generateRoomId() {
   return result;
 }
 
-export async function createRoom(nickname, location, roomName, uid, password = '', roomType = 'lunch') {
+export async function createRoom(nickname, location, roomName, uid, password = '', roomType = 'lunch', options = {}) {
   const roomId = generateRoomId();
   const roomData = {
     createdAt: Date.now(),
@@ -24,6 +24,8 @@ export async function createRoom(nickname, location, roomName, uid, password = '
     schedules: {},
     scheduleVotes: {},
     result: null,
+    anonymousVote: options.anonymousVote ?? false,
+    hideVoteCount: options.hideVoteCount ?? false,
   };
   if (password) {
     roomData.password = password;

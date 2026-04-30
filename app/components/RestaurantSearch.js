@@ -1,16 +1,17 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { searchRestaurants } from '../utils/naverSearch';
+import { searchRestaurants, searchRestaurantsRandom } from '../utils/naverSearch';
 import { addFavorite, removeFavorite, getFavorites } from '../utils/favorites';
 import { useAuth } from '../contexts/AuthContext';
 
-export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults, addedNames, noRadius = false }) {
+export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults, addedNames, noRadius = false, bounds = null }) {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [favorites, setFavorites] = useState([]);
   const [activeTab, setActiveTab] = useState('search');
+  const [radius, setRadius] = useState(1000);
 
   useEffect(() => {
     if (user && activeTab === 'favorites') {
@@ -34,7 +35,7 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
 
     setSearching(true);
     try {
-      const data = await searchRestaurants(trimmed, lat, lng, noRadius);
+      const data = await searchRestaurants(trimmed, lat, lng, noRadius, noRadius ? bounds : null, 1, radius);
       setResults(data);
       if (onResults) onResults(data);
       setActiveTab('search');
@@ -50,6 +51,31 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
     setQuery('');
     setResults([]);
     if (onResults) onResults([]);
+  };
+
+  const QUICK_BUTTONS = [
+    { label: '🎲 랜덤', categories: ['한식', '중식', '양식', '분식', '일식'], limit: 10 },
+    { label: '🍚 한식', categories: ['한식'], limit: 5 },
+    { label: '🥢 중식', categories: ['중식'], limit: 5 },
+    { label: '🍝 양식', categories: ['양식'], limit: 5 },
+    { label: '🍜 분식', categories: ['분식'], limit: 5 },
+    { label: '🍣 일식', categories: ['일식'], limit: 5 },
+  ];
+
+  const handleQuickSearch = async ({ categories, limit }) => {
+    setSearching(true);
+    setActiveTab('search');
+    setQuery('');
+    try {
+      const data = await searchRestaurantsRandom(categories, lat, lng, noRadius ? bounds : null, limit, radius);
+      setResults(data);
+      if (onResults) onResults(data);
+    } catch (err) {
+      console.error('빠른 검색 오류:', err);
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
   };
 
   const toggleFavorite = async (e, restaurant) => {
@@ -113,6 +139,36 @@ export default function RestaurantSearch({ lat, lng, areaName, onAdd, onResults,
 
       {activeTab === 'search' ? (
         <>
+          {noRadius && (
+            <div className="map-search-notice">
+              🗺️ 현재 지도에 보이는 범위 안에서 검색합니다
+            </div>
+          )}
+          {!noRadius && (
+            <div className="radius-selector">
+              {[{ label: '500m', value: 500 }, { label: '1km', value: 1000 }, { label: '2km', value: 2000 }].map(({ label, value }) => (
+                <button
+                  key={value}
+                  className={`radius-btn${radius === value ? ' active' : ''}`}
+                  onClick={() => setRadius(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="quick-search-btns">
+            {QUICK_BUTTONS.map((btn) => (
+              <button
+                key={btn.label}
+                className="quick-search-btn"
+                onClick={() => handleQuickSearch(btn)}
+                disabled={searching}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
           <div className="search-bar">
             <input
               type="text"

@@ -31,3 +31,9 @@ dist-ssr
 .vercel
 .env.example
 .env*.local
+
+# Cloudflare credentials
+cloudflared-credentials.json
+
+# Database
+data/

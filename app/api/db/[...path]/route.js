@@ -20,8 +20,8 @@ async function setRoomRow(id, data) {
   const c = roomDataToColumns(data);
   await pool.query(`
     INSERT INTO rooms
-      (id, room_name, status, created_by, created_by_uid, created_at, password, location, menus, votes, participation, messages, result, room_type, schedules, schedule_votes)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      (id, room_name, status, created_by, created_by_uid, created_at, password, location, menus, votes, participation, messages, result, room_type, schedules, schedule_votes, anonymous_vote, hide_vote_count)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
     ON CONFLICT (id) DO UPDATE SET
       room_name = EXCLUDED.room_name,
       status = EXCLUDED.status,
@@ -37,10 +37,13 @@ async function setRoomRow(id, data) {
       result = EXCLUDED.result,
       room_type = EXCLUDED.room_type,
       schedules = EXCLUDED.schedules,
-      schedule_votes = EXCLUDED.schedule_votes
+      schedule_votes = EXCLUDED.schedule_votes,
+      anonymous_vote = EXCLUDED.anonymous_vote,
+      hide_vote_count = EXCLUDED.hide_vote_count
   `, [id, c.room_name, c.status, c.created_by, c.created_by_uid,
       c.created_at, c.password, c.location, c.menus, c.votes,
-      c.participation, c.messages, c.result, c.room_type, c.schedules, c.schedule_votes]);
+      c.participation, c.messages, c.result, c.room_type, c.schedules, c.schedule_votes,
+      c.anonymous_vote, c.hide_vote_count]);
 }
 
 async function deleteRoomRow(id) {

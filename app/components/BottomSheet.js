@@ -5,7 +5,7 @@ const SNAP_HALF = 0.5;
 const SNAP_MAX = 0.85;
 const SNAP_MIN_PX = 120;
 
-const BottomSheet = forwardRef(function BottomSheet({ children, header }, ref) {
+const BottomSheet = forwardRef(function BottomSheet({ children, header, open = true }, ref) {
   const sheetRef = useRef(null);
   const handleAreaRef = useRef(null);
   const dragState = useRef(null);
@@ -71,7 +71,7 @@ const BottomSheet = forwardRef(function BottomSheet({ children, header }, ref) {
   }, []);
 
   return (
-    <div className="bottom-sheet" ref={sheetRef}>
+    <div className={`bottom-sheet${open ? '' : ' bottom-sheet-hidden'}`} ref={sheetRef}>
       <div
         className="bottom-sheet-handle-area"
         ref={handleAreaRef}

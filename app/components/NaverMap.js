@@ -18,12 +18,13 @@ async function loadNaverMapsSDK() {
   });
 }
 
-export default function NaverMap({ lat, lng, markers = [], menuMarkers = [], onReady }) {
+export default function NaverMap({ lat, lng, markers = [], menuMarkers = [], onReady, onBoundsChange, fitMarkersOnInit = false }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const currentMarkerRef = useRef(null);
   const searchMarkersRef = useRef([]);
   const menuMarkersRef = useRef([]);
+  const fitDoneRef = useRef(false);
   const [sdkReady, setSdkReady] = useState(false);
 
   useEffect(() => {
@@ -47,6 +48,18 @@ export default function NaverMap({ lat, lng, markers = [], menuMarkers = [], onR
       map,
       title: '현재 위치',
     });
+
+    if (onBoundsChange) {
+      const notifyBounds = () => {
+        const b = map.getBounds();
+        onBoundsChange({
+          sw: { lat: b.getSW().lat(), lng: b.getSW().lng() },
+          ne: { lat: b.getNE().lat(), lng: b.getNE().lng() },
+        });
+      };
+      notifyBounds();
+      window.naver.maps.Event.addListener(map, 'bounds_changed', notifyBounds);
+    }
   }, [sdkReady]);
 
   useEffect(() => {
@@ -89,7 +102,8 @@ export default function NaverMap({ lat, lng, markers = [], menuMarkers = [], onR
     if (!mapInstanceRef.current) return;
     menuMarkersRef.current.forEach((m) => m.setMap(null));
     menuMarkersRef.current = [];
-    menuMarkers.forEach((m, index) => {
+    const validMenuMarkers = menuMarkers.filter(m => m.lat && m.lng);
+    validMenuMarkers.forEach((m, index) => {
       if (m.lat && m.lng) {
         const num = index + 1;
         const marker = new window.naver.maps.Marker({
@@ -112,6 +126,14 @@ export default function NaverMap({ lat, lng, markers = [], menuMarkers = [], onR
         menuMarkersRef.current.push(marker);
       }
     });
+
+    // 첫 로드 시 모든 menuMarker가 보이도록 bounds 맞춤
+    if (fitMarkersOnInit && !fitDoneRef.current && validMenuMarkers.length > 0) {
+      fitDoneRef.current = true;
+      const bounds = new window.naver.maps.LatLngBounds();
+      validMenuMarkers.forEach(m => bounds.extend(new window.naver.maps.LatLng(m.lat, m.lng)));
+      mapInstanceRef.current.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 });
+    }
   }, [menuMarkers, sdkReady]);
 
   return (
